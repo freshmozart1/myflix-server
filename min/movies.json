@@ -1,0 +1,74 @@
+{
+    "movies": [
+        {
+            "title": "Film 1",
+            "genre": "Genre 1",
+            "director": "Director 1",
+            "year": 2021,
+            "rating": 8.5
+        },
+        {
+            "title": "Film 2",
+            "genre": "Genre 2",
+            "director": "Director 2",
+            "year": 2020,
+            "rating": 7.9
+        },
+        {
+            "title": "Film 3",
+            "genre": "Genre 3",
+            "director": "Director 3",
+            "year": 2019,
+            "rating": 8.2
+        },
+        {
+            "title": "Film 4",
+            "genre": "Genre 4",
+            "director": "Director 4",
+            "year": 2018,
+            "rating": 7.6
+        },
+        {
+            "title": "Film 5",
+            "genre": "Genre 5",
+            "director": "Director 5",
+            "year": 2017,
+            "rating": 8.8
+        },
+        {
+            "title": "Film 6",
+            "genre": "Genre 6",
+            "director": "Director 6",
+            "year": 2016,
+            "rating": 7.4
+        },
+        {
+            "title": "Film 7",
+            "genre": "Genre 7",
+            "director": "Director 7",
+            "year": 2015,
+            "rating": 8.1
+        },
+        {
+            "title": "Film 8",
+            "genre": "Genre 8",
+            "director": "Director 8",
+            "year": 2014,
+            "rating": 7.7
+        },
+        {
+            "title": "Film 9",
+            "genre": "Genre 9",
+            "director": "Director 9",
+            "year": 2013,
+            "rating": 8.3
+        },
+        {
+            "title": "Film 10",
+            "genre": "Genre 10",
+            "director": "Director 10",
+            "year": 2012,
+            "rating": 7.5
+        }
+    ]
+}
