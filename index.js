@@ -39,8 +39,9 @@ app.get('/movies/:title', (req, res) => {
             } else {
                 throw err;
             }
+        } else {
+            res.json(JSON.parse(data));
         }
-        res.json(JSON.parse(data));
     });
 });
 
