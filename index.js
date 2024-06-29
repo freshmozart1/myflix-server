@@ -46,8 +46,22 @@ app.get('/movies?:limit', (req, res) => {
     });
 });
 
+app.get('/genres/:name', (req, res) => {
+    fs.readFile(__dirname + '/' + req.params.name + '.json', 'utf8', (err, data) => {
+        if (err) {
+            console.log(err.code);
+            if (err.code === 'ENOENT') {
+                res.status(404).send('The genre ' + req.params.name + ' does not exist.');
+            } else {
+                throw err;
+            }
+        } else {
+            res.json(JSON.parse(data));
+        }
+    });
+});
+
 app.get('/movies/:title', (req, res) => {
-    console.log(req.params.title);
     fs.readFile(__dirname + '/' + req.params.title + '.json', 'utf8', (err, data) => {
         if (err) {
             console.log(err.code);
