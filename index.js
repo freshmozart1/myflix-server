@@ -12,6 +12,23 @@ app.get('/', (req, res) => {
     res.send('hello, world');
 });
 
+app.get('/genres?:limit', (req, res) => {
+    fs.readFile(__dirname + '/genres.json', 'utf8', (err, data) => {
+        if (err) throw err;
+        let genres = JSON.parse(data)['genres'];
+        if (req.query['limit']) {
+            const limit = Number(req.query['limit']);
+            if (isNaN(limit)) throw new Error('Invalid limit');
+            if (limit > 0) {
+                genres = genres.slice(0, limit);
+            }
+            res.json({ "genres": genres });
+        } else {
+            res.json({ "genres": genres });
+        }
+    });
+});
+
 app.get('/movies?:limit', (req, res) => {
     fs.readFile(__dirname + '/movies.json', 'utf8', (err, data) => {
         if (err) throw err;
