@@ -12,6 +12,23 @@ app.get('/', (req, res) => {
     res.send('hello, world');
 });
 
+app.get('/directors?:limit', (req, res) => {
+    fs.readFile(__dirname + '/directors.json', 'utf8', (err, data) => {
+        if (err) throw err;
+        let directors = JSON.parse(data)['directors'];
+        if (req.query['limit']) {
+            const limit = Number(req.query['limit']);
+            if (isNaN(limit)) throw new Error('Invalid limit');
+            if (limit > 0) {
+                directors = directors.slice(0, limit);
+            }
+            res.json({ "directors": directors });
+        } else {
+            res.json({ "directors": directors });
+        }
+    });
+});
+
 app.get('/genres?:limit', (req, res) => {
     fs.readFile(__dirname + '/genres.json', 'utf8', (err, data) => {
         if (err) throw err;
