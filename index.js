@@ -134,26 +134,27 @@ app.patch('/users/:username', (req, res) => {
             if (req.body.password) {
                 db.run('UPDATE users SET password = ? WHERE username = ?', [req.body.password, req.params.username], (err) => {
                     if (err) throw err;
-                    res.sendStatus(204).end();
                 });
             }
             if (req.body.username) {
                 db.run('UPDATE users SET username = ? WHERE username = ?', [req.body.username, req.params.username], (err) => {
                     if (err) throw err;
-                    res.sendStatus(204).end();
                 });
             }
             if (req.body.email) {
                 db.run('UPDATE users SET email = ? WHERE username = ?', [req.body.email, req.params.username], (err) => {
                     if (err) throw err;
-                    res.sendStatus(204).end();
                 });
             }
             if (req.body.birthday) {
                 db.run('UPDATE users SET birthday = ? WHERE username = ?', [req.body.birthday, req.params.username], (err) => {
                     if (err) throw err;
-                    res.sendStatus(204).end();
                 });
+            }
+            if (!req.body.password && !req.body.username && !req.body.email && !req.body.birthday) {
+                res.sendStatus(400).end();
+            } else {
+                res.sendStatus(204).end();
             }
         }
     });
