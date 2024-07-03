@@ -114,15 +114,47 @@ app.post('/users', (req, res) => {
 app.delete('/users/:username', (req, res) => {
     db.get('SELECT count(*) FROM users WHERE username = ?', req.params.username, (err, row) => {
         if (err) throw err;
-        console.log(row);
         if (row['count(*)'] === 0) {
-            console.log('User not found');
             res.sendStatus(404).end();
         } else {
             db.run('DELETE FROM users WHERE username = ?', req.params.username, (err) => {
                 if (err) throw err;
                 res.sendStatus(204).end();
             });
+        }
+    });
+});
+
+app.patch('/users/:username', (req, res) => {
+    db.get('SELECT count(*) FROM users WHERE username = ?', req.params.username, (err, row) => {
+        if (err) throw err;
+        if (row['count(*)'] === 0) {
+            res.sendStatus(404).end();
+        } else {
+            if (req.body.password) {
+                db.run('UPDATE users SET password = ? WHERE username = ?', [req.body.password, req.params.username], (err) => {
+                    if (err) throw err;
+                    res.sendStatus(204).end();
+                });
+            }
+            if (req.body.username) {
+                db.run('UPDATE users SET username = ? WHERE username = ?', [req.body.username, req.params.username], (err) => {
+                    if (err) throw err;
+                    res.sendStatus(204).end();
+                });
+            }
+            if (req.body.email) {
+                db.run('UPDATE users SET email = ? WHERE username = ?', [req.body.email, req.params.username], (err) => {
+                    if (err) throw err;
+                    res.sendStatus(204).end();
+                });
+            }
+            if (req.body.birthday) {
+                db.run('UPDATE users SET birthday = ? WHERE username = ?', [req.body.birthday, req.params.username], (err) => {
+                    if (err) throw err;
+                    res.sendStatus(204).end();
+                });
+            }
         }
     });
 });
