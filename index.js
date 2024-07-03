@@ -100,14 +100,29 @@ app.get('/movies/:title', (req, res) => {
 });
 
 app.post('/users', (req, res) => {
-    console.log(req.body);
-    db.get('SELECT * FROM users WHERE username = ?', req.body.username, (err, row) => {
+    db.get('SELECT count(*) FROM users WHERE username = ?', req.body.username, (err, row) => {
         if (err) throw err;
-        if (row) {
+        if (row['count(*)'] > 0) {
             res.sendStatus(409).end();
         } else {
             db.run('INSERT INTO users VALUES (?, ?, ?, ?, ?)', [req.body.username, req.body.email, req.body.password, req.body.birthday, req.body.favourites.toString()]);
             res.sendStatus(201).end();
+        }
+    });
+});
+
+app.delete('/users/:username', (req, res) => {
+    db.get('SELECT count(*) FROM users WHERE username = ?', req.params.username, (err, row) => {
+        if (err) throw err;
+        console.log(row);
+        if (row['count(*)'] === 0) {
+            console.log('User not found');
+            res.sendStatus(404).end();
+        } else {
+            db.run('DELETE FROM users WHERE username = ?', req.params.username, (err) => {
+                if (err) throw err;
+                res.sendStatus(204).end();
+            });
         }
     });
 });
