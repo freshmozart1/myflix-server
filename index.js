@@ -3,14 +3,20 @@ const express = require('express'),
     morgan = require('morgan'),
     bodyParser = require('body-parser'),
     methodOverride = require('method-override'),
-    fs = require('fs');
+    fs = require('fs'),
+    sqlite3 = require('sqlite3').verbose(),
+    db = new sqlite3.Database(':memory:');
+
+db.serialize(() => {
+    db.run('CREATE TABLE users (username TEXT, email TEXT, password TEXT, birthday TEXT, favourites TEXT)');
+});
 
 app.use(morgan('common'));
 app.use(express.static(__dirname));
-
-app.get('/', (req, res) => {
-    res.send('hello, world');
-});
+app.use(bodyParser.urlencoded({
+    extended: true
+}));
+app.use(bodyParser.json());
 
 app.get('/directors?:limit', (req, res) => {
     fs.readFile(__dirname + '/directors.json', 'utf8', (err, data) => {
@@ -93,10 +99,19 @@ app.get('/movies/:title', (req, res) => {
     });
 });
 
-app.use(bodyParser.urlencoded({
-    extended: true
-}));
-app.use(bodyParser.json());
+app.post('/users', (req, res) => {
+    console.log(req.body);
+    db.get('SELECT * FROM users WHERE username = ?', req.body.username, (err, row) => {
+        if (err) throw err;
+        if (row) {
+            res.sendStatus(409).end();
+        } else {
+            db.run('INSERT INTO users VALUES (?, ?, ?, ?, ?)', [req.body.username, req.body.email, req.body.password, req.body.birthday, req.body.favourites.toString()]);
+            res.sendStatus(201).end();
+        }
+    });
+});
+
 app.use(methodOverride());
 app.use((err, req, res, next) => {
     console.error(err.stack);
