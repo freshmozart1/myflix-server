@@ -4,11 +4,13 @@ const express = require('express'),
     bodyParser = require('body-parser'),
     methodOverride = require('method-override'),
     fs = require('fs'),
+    lodash = require('lodash'),
     sqlite3 = require('sqlite3').verbose(),
     db = new sqlite3.Database(':memory:');
 
 db.serialize(() => {
-    db.run('CREATE TABLE users (username TEXT, email TEXT, password TEXT, birthday TEXT, favourites TEXT)');
+    db.run('CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT, email TEXT, password TEXT, birthday TEXT, favourites TEXT)');
+    db.run('CREATE TABLE movies (id INTEGER PRIMARY KEY, title TEXT, description TEXT, genre TEXT, director TEXT, image TEXT)');
 });
 
 app.use(morgan('common'));
@@ -53,26 +55,26 @@ app.get('/genres?:limit', (req, res) => {
 });
 
 app.get('/movies?:limit', (req, res) => {
-    fs.readFile(__dirname + '/movies.json', 'utf8', (err, data) => {
-        if (err) throw err;
-        let movies = JSON.parse(data)['movies'];
-        if (req.query['limit']) {
-            const limit = Number(req.query['limit']);
-            if (isNaN(limit)) throw new Error('Invalid limit');
-            if (limit > 0) {
-                movies = movies.slice(0, limit);
-            }
-            res.json({ "movies": movies });
-        } else {
-            res.json({ "movies": movies });
+    const limit = Number(req.query['limit']);
+    if (lodash.isNumber(limit) && limit > 0) {
+        if (isNaN(limit)) {
+            res.status(400).end();
         }
-    });
+        db.all('SELECT title FROM movies LIMIT ?', limit, (err, rows) => {
+            if (err) throw err;
+            res.json({ "movies": rows.map(row => row.title) });
+        });
+    } else {
+        db.all('SELECT title FROM movies', (err, rows) => {
+            if (err) throw err;
+            res.json({ "movies": rows.map(row => row.title) });
+        });
+    }
 });
 
 app.get('/genres/:name', (req, res) => {
     fs.readFile(__dirname + '/' + req.params.name + '.json', 'utf8', (err, data) => {
         if (err) {
-            console.log(err.code);
             if (err.code === 'ENOENT') {
                 res.status(404).send('The genre ' + req.params.name + ' does not exist.');
             } else {
@@ -84,17 +86,25 @@ app.get('/genres/:name', (req, res) => {
     });
 });
 
-app.get('/movies/:title', (req, res) => {
-    fs.readFile(__dirname + '/' + req.params.title + '.json', 'utf8', (err, data) => {
-        if (err) {
-            console.log(err.code);
-            if (err.code === 'ENOENT') {
-                res.status(404).send('The movie ' + req.params.title + ' does not exist.');
-            } else {
-                throw err;
-            }
+app.post('/movies', (req, res) => {
+    db.get('SELECT count(*) FROM movies WHERE title = ?', req.body.title, (err, row) => {
+        if (err) throw err;
+        if (row['count(*)'] > 0) {
+            res.sendStatus(409).end();
         } else {
-            res.json(JSON.parse(data));
+            db.run('INSERT INTO movies VALUES (NULL, ?, ?, ?, ?, ?)', [req.body.title, req.body.description, req.body.genre, req.body.director, req.body.image]);
+            res.sendStatus(201).end();
+        }
+    });
+});
+
+app.get('/movies/:title', (req, res) => {
+    db.get('SELECT * FROM movies WHERE title = ?', req.params.title, (err, row) => {
+        if (err) throw err;
+        if (row) {
+            res.json(row);
+        } else {
+            res.sendStatus(404).end();
         }
     });
 });
@@ -104,9 +114,40 @@ app.post('/users', (req, res) => {
         if (err) throw err;
         if (row['count(*)'] > 0) {
             res.sendStatus(409).end();
+        } else if (req.body.favourites.length > 0) {
+            const favourites = req.body.favourites;
+            const query = 'SELECT id FROM movies WHERE id IN (' + favourites.join(',') + ')';
+            db.all(query, (err, rows) => {
+                if (err) throw err;
+                const movieIds = rows.map(row => row.id);
+                const missingIds = favourites.filter(id => !movieIds.includes(id));
+                if (missingIds.length > 0) {
+                    res.status(400).end();
+                } else {
+                    db.run('INSERT INTO users VALUES (NULL, ?, ?, ?, ?, ?)', [req.body.username, req.body.email, req.body.password, req.body.birthday, '[' + favourites.join(', ') + ']']);
+                    res.sendStatus(201).end();
+                }
+            });
         } else {
-            db.run('INSERT INTO users VALUES (?, ?, ?, ?, ?)', [req.body.username, req.body.email, req.body.password, req.body.birthday, req.body.favourites.toString()]);
+            db.run('INSERT INTO users VALUES (NULL, ?, ?, ?, ?, NULL)', [req.body.username, req.body.email, req.body.password, req.body.birthday]);
             res.sendStatus(201).end();
+        }
+    });
+});
+
+app.get('/users/:username', (req, res) => {
+    db.get('SELECT * FROM users WHERE username = ?', req.params.username, (err, userRow) => {
+        if (err) throw err;
+        if (userRow) {
+            const parsedFavourites = JSON.parse(userRow['favourites']);
+            db.all('SELECT title FROM movies WHERE id IN (' + parsedFavourites.join() + ')', (err, movieTitles) => {
+                if (err) throw err;
+                movieTitles = movieTitles.map(row => row.title);
+                userRow['favourites'] = movieTitles;
+                res.json(userRow);
+            });
+        } else {
+            res.sendStatus(404).end();
         }
     });
 });
