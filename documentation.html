@@ -5,12 +5,202 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MyFlix Documentation</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
-    <h1>Welcome to MyFlix Documentation</h1>
-
-    <!-- Your content goes here -->
+    <header>
+        <h1>MyFlix REST API Documentation</h1>
+        <p>This section provides documentation for the REST API endpoints available in MyFlix.</p>
+        <nav>
+            <li>/directors: <a href="#postDirectors">POST</a>
+                <ul>
+                    <li>*?:limit: <a href="#getDirectors">GET</a></li>
+                    <li>*/:name: <a href="#getDirectorByName">GET</a></li>
+                </ul>
+            </li>
+            <li>/genres <a href="#postGenre">POST</a>
+                <ul>
+                    <li>*?:limit: <a href="#getGenres">GET</a></li>
+                    <li>*/:name <a href="#getGenreByName">GET</a></li>
+                </ul>
+            </li>
+            <li>/movies <a href="#postMovie">POST</a>
+                <ul>
+                    <li>*?:limit <a href="#getMovies">GET</a></li>
+                    <li>*/:title <a href="#getMovieByName">GET</a></li>
+                </ul>
+            </li>
+            <li>
+                /users <a href="#postUser">POST</a>
+                <ul>
+                    <li>*/:username <a href="#getUserByName">GET</a>, <a href="#delUser">DEL</a>, <a
+                            href="#patchUser">PATCH</a></li>
+                </ul>
+            </li>
+        </nav>
+    </header>
+    <main>
+        <table>
+            <thead>
+                <tr>
+                    <th>Endpoint</th>
+                    <th>Method</th>
+                    <th>Description</th>
+                    <th>Request Body</th>
+                    <th>Response Body</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td id="postDirectors">/directors</td>
+                    <td>POST</td>
+                    <td>Adds a new director</td>
+                    <td>
+                        <code>
+                            {"Name": "String", "Bio": "String", "Birth": "String", "Death": "String"}
+                        </code>
+                    </td>
+                    <td>none</td>
+                </tr>
+                <tr>
+                    <td>/directors?:limit</td>
+                    <td id="getDirectors">GET</td>
+                    <td>
+                        Returns either all directors or a limited amount of directors, if limit parameter is &gt; 0.
+                    </td>
+                    <td>none</td>
+                    <td>
+                        <code>
+                            {"directors": [{"id": 1, "name": "Francis Ford Coppola", "birthday": "1939-04-07", "deathday": null, "biography": "Francis is awesome!"}]}
+                        </code>
+                    </td>
+                </tr>
+                <tr>
+                    <td id="getDirectorByName">/directors/:name</td>
+                    <td>GET</td>
+                    <td>Returns a director by name</td>
+                    <td>none</td>
+                    <td>
+                        <code>
+                            {"id": 1, "name": "Francis Ford Coppola", "birthday": "1939-04-07", "deathday": null, "biography": "Francis is awesome!"}
+                        </code>
+                    </td>
+                </tr>
+                <tr>
+                    <td id="postGenre">/genres</td>
+                    <td>POST</td>
+                    <td>Adds a new genre to the database</td>
+                    <td>
+                        <code>
+                            {"id": 1, "name": "Thriller", "description": "Thriller description"}
+                        </code>
+                    </td>
+                    <td>none</td>
+                </tr>
+                <tr>
+                    <td id="getGenres">/genres?:limit</td>
+                    <td>GET</td>
+                    <td>Either returns all genres or a limited amount of genres, if limit parameter is &gt; 0.</td>
+                    <td>none</td>
+                    <td>
+                        <code>
+                            {"genres": [{"id": 1, "name": "Thriller", "description": "Thriller description"}]}
+                        </code>
+                    </td>
+                </tr>
+                <tr>
+                    <td id="getGenreByName">/genres/:name</td>
+                    <td>GET</td>
+                    <td>Returns a genre by name</td>
+                    <td>none</td>
+                    <td>
+                        <code>
+                            {"id": 1, "name": "Thriller", "description": "Thriller description"}
+                        </code>
+                    </td>
+                </tr>
+                <tr>
+                    <td id="postMovie">/movies</td>
+                    <td>POST</td>
+                    <td>Adds a new movie to the database. Genre and director must be added to the database before adding
+                        a movie.</td>
+                    <td>
+                        <code>
+                            {"id":1, "title":"The Godfather", "description":"description", "genre":1, "director":1, "image":"imagelink"}
+                        </code>
+                    </td>
+                    <td>none</td>
+                </tr>
+                <tr>
+                    <td id="getMovies">/movies?:limit</td>
+                    <td>GET</td>
+                    <td>Returns all movies or a limited amount of movies, if limit parameter is &gt; 0.</td>
+                    <td>none</td>
+                    <td>
+                        <code>
+                            {"movies": [{"id": 1, "title": "The Godfather", "description": "description", "genre": "Thriller", "director": "Francis Ford Coppola", "image": "imagelink"}]}
+                        </code>
+                    </td>
+                </tr>
+                <tr>
+                    <td id="getMovieByName">/movies/:title</td>
+                    <td>GET</td>
+                    <td>Returns a movie. Selects movie by title.</td>
+                    <td>none</td>
+                    <td>
+                        <code>
+                            {"id":1, "title":"The Godfather", "description":"description", "genre":"Thriller", "director":"Francis Ford
+                            Coppola", "image":"imagelink"}
+                        </code>
+                    </td>
+                </tr>
+                <tr>
+                    <td id="postUser">/users</td>
+                    <td>POST</td>
+                    <td>Adds a new user to the database.</td>
+                    <td>
+                        <code>
+                            {"username": "freshmozart", "email": "freshmozart@gmx.com", "password": "beathoven123", "birthday": "1994-09-26", "favourites": null}
+                        </code>
+                    </td>
+                    <td>none</td>
+                </tr>
+                <tr>
+                    <td id="getUserByName">/users/:username</td>
+                    <td>GET</td>
+                    <td>Returns a user with the name that is stored in the parameter username.</td>
+                    <td>none</td>
+                    <td>
+                        <code>
+                            {"username": "freshmozart", "email": "freshmozart@gmx.com", "password": "beathoven123", "birthday": "1994-09-26", "favourites": null}
+                        </code>
+                    </td>
+                </tr>
+                <tr>
+                    <td id="delUser">/users/:username</td>
+                    <td>DEL</td>
+                    <td>Deletes a user with the name that is stored in the parameter username.</td>
+                    <td>none</td>
+                    <td>none</td>
+                </tr>
+                <tr>
+                    <td id="patchUser">/users/:username</td>
+                    <td>PATCH</td>
+                    <td>
+                        Updates user data. JSON in request body can have one or more of the following keys: "password,
+                        username, email, birthday, favourites". Values for password, username or email can't be null.
+                    </td>
+                    <td>
+                        <code>
+                            {"password": "newpassword456"}
+                        </code>
+                    </td>
+                    <td>none</td>
+                </tr>
+            </tbody>
+        </table>
+    </main>
 
 </body>
 
