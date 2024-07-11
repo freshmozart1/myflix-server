@@ -118,8 +118,18 @@ app.get('/users', async (req, res) => {
 /**
  * @api {get} /users/:username Get a user by username
  */
-app.get('/users/:username', (req, res) => {
-
+app.get('/users/:username', async (req, res) => {
+    await users.findOne({ username: req.params.username })
+        .then(user => {
+            if (!user) {
+                return res.status(404).send(req.params.username + ' was not found.');
+            }
+            res.status(200).json(user);
+        })
+        .catch(err => {
+            console.error(err);
+            res.status(500).send('Error: ' + err);
+        });
 });
 
 /**
