@@ -1,8 +1,14 @@
 const express = require('express'),
     app = express(),
+    mongoose = require('mongoose'),
+    Models = require('./models.js'),
+    movies = Models.Movie,
+    users = Models.User,
     morgan = require('morgan'),
     bodyParser = require('body-parser'),
     methodOverride = require('method-override');
+
+mongoose.connect('mongodb://localhost:27017/myflix');
 
 app.use(morgan('common'));
 app.use(express.static(__dirname));
