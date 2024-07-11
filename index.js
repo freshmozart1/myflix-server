@@ -1,9 +1,9 @@
 const express = require('express'),
     app = express(),
     mongoose = require('mongoose'),
-    Models = require('./models.js'),
-    movies = Models.Movie,
-    users = Models.User,
+    models = require('./models.js'),
+    movies = models.movie,
+    users = models.user,
     morgan = require('morgan'),
     methodOverride = require('method-override');
 
@@ -82,8 +82,28 @@ app.post('/movies', (req, res) => {
 /**
  * @api {post} /users Create a new user
  */
-app.post('/users', (req, res) => {
-
+app.post('/users', async (req, res) => {
+    await users.findOne({ username: req.body.username })
+        .then((user) => {
+            if (user) {
+                return res.status(400).send(req.body.username + ' already exists.');
+            } else {
+                users.create({
+                    username: req.body.username,
+                    password: req.body.password,
+                    email: req.body.email,
+                    birthday: req.body.birthday
+                }).then((user) => {
+                    res.status(201).json(user);
+                }).catch((err) => {
+                    console.error(err);
+                    res.status(500).send('Error: ' + err);
+                });
+            }
+        }).catch((err) => {
+            console.error(err);
+            res.status(500).send('Error: ' + err);
+        });
 });
 
 /**
