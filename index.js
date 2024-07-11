@@ -106,6 +106,15 @@ app.post('/users', async (req, res) => {
         });
 });
 
+app.get('/users', async (req, res) => {
+    await users.find()
+        .then(users => res.status(201).json(users))
+        .catch(err => {
+            console.error(err);
+            res.status(500).send('Error: ' + err);
+        });
+});
+
 /**
  * @api {get} /users/:username Get a user by username
  */
