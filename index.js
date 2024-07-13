@@ -164,7 +164,17 @@ app.post('/genres', (req, res) => {
  * @api {get} /movies/:title Get a movie by title
  */
 app.get('/movies/:title', (req, res) => {
-
+    movies.findOne({ title: req.params.title }).populate('genre').populate('director')
+        .then(movie => {
+            if (!movie) {
+                return res.status(404).send(req.params.title + ' was not found.');
+            }
+            res.status(200).json(movie);
+        })
+        .catch(err => {
+            console.error(err);
+            res.status(500).send('Error: ' + err);
+        });
 });
 
 /**
