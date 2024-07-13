@@ -50,7 +50,7 @@ app.post('/directors', async (req, res) => {
  * @api {get} /directors?:limit Get all or a limited number of directors
  */
 app.get('/directors?:limit', (req, res) => {
-    if (req.query.limit) {
+    if (req.query.limit && /^[1-9]\d*$/.test(req.query.limit)) {
         directors.find().limit(parseInt(req.query.limit))
             .then(directors => res.status(200).json(directors))
             .catch(err => {
