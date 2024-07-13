@@ -72,7 +72,17 @@ app.get('/directors?:limit', (req, res) => {
  * @api {get} /directors/:name Get a director by name
  */
 app.get('/directors/:name', (req, res) => {
-
+    directors.findOne({ name: req.params.name })
+        .then(director => {
+            if (!director) {
+                return res.status(404).send(req.params.name + ' was not found.');
+            }
+            res.status(200).json(director);
+        })
+        .catch(err => {
+            console.error(err);
+            res.status(500).send('Error: ' + err);
+        });
 });
 
 /**
