@@ -4,6 +4,8 @@ const express = require('express'),
     models = require('./models.js'),
     movies = models.movie,
     users = models.user,
+    directors = models.director,
+    genres = models.genre,
     morgan = require('morgan'),
     methodOverride = require('method-override');
 
@@ -19,8 +21,29 @@ app.use(express.json());
 /**
  * @api {post} /directors Create a new director
  */
-app.post('/directors', (req, res) => {
-
+app.post('/directors', async (req, res) => {
+    await directors.findOne({ name: req.body.name })
+        .then(director => {
+            if (director) {
+                return res.status(400).send(req.body.name + ' already exists.');
+            } else {
+                directors.create({
+                    name: req.body.name,
+                    birthday: req.body.birthday,
+                    deathday: req.body.deathday,
+                    biography: req.body.biography
+                }).then(director => {
+                    res.status(201).json(director);
+                }).catch(err => {
+                    console.error(err);
+                    res.status(500).send('Error: ' + err);
+                });
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            res.status(500).send('Error: ' + err);
+        });
 });
 
 /**
