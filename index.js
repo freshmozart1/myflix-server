@@ -178,7 +178,51 @@ app.get('/movies?:limit', (req, res) => {
  * @api {post} /movies Create a new movie
  */
 app.post('/movies', (req, res) => {
-
+    movies.findOne({ title: req.body.title })
+        .then(movie => {
+            if (movie) {
+                return res.status(400).send(req.body.title + ' already exists.');
+            } else {
+                directors.findById(req.body.director)
+                    .then(director => {
+                        if (!director) {
+                            return res.status(404).send('Director not found.');
+                        } else {
+                            genres.findById(req.body.genre)
+                                .then(genre => {
+                                    if (!genre) {
+                                        return res.status(404).send('Genre not found.');
+                                    } else {
+                                        movies.create({
+                                            title: req.body.title,
+                                            description: req.body.description,
+                                            director: director,
+                                            genre: genre,
+                                            imagePath: req.body.imagePath
+                                        }).then(movie => {
+                                            res.status(201).json(movie);
+                                        }).catch(err => {
+                                            console.error(err);
+                                            res.status(500).send('Error: ' + err);
+                                        });
+                                    }
+                                })
+                                .catch(err => {
+                                    console.error(err);
+                                    res.status(500).send('Error: ' + err);
+                                });
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        res.status(500).send('Error: ' + err);
+                    });
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            res.status(500).send('Error: ' + err);
+        });
 });
 
 /**
