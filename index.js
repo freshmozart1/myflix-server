@@ -103,7 +103,26 @@ app.get('/genres/:name', (req, res) => {
  * @api {post} /genres Create a new genre
  */
 app.post('/genres', (req, res) => {
-
+    genres.findOne({ name: req.body.name })
+        .then(genre => {
+            if (genre) {
+                return res.status(400).send(req.body.name + ' already exists.');
+            } else {
+                genres.create({
+                    name: req.body.name,
+                    description: req.body.description
+                }).then(genre => {
+                    res.status(201).json(genre);
+                }).catch(err => {
+                    console.error(err);
+                    res.status(500).send('Error: ' + err);
+                });
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            res.status(500).send('Error: ' + err);
+        });
 });
 
 /**
