@@ -89,9 +89,7 @@ app.get('/directors/:name', (req, res) => {
  * @api {get} /genres?:limit Get all or a limited number of genres
  */
 app.get('/genres?:limit', (req, res) => {
-    console.log(typeof req.query.limit);
     if (req.query.limit && /^[1-9]\d*$/.test(req.query.limit)) {
-        console.log(req.query.limit);
         genres.find().limit(parseInt(req.query.limit))
             .then(genres => res.status(200).json(genres))
             .catch(err => {
@@ -113,7 +111,17 @@ app.get('/genres?:limit', (req, res) => {
  * @api {get} /genres/:name Get a genre by name
  */
 app.get('/genres/:name', (req, res) => {
-
+    genres.findOne({ name: req.params.name })
+        .then(genre => {
+            if (!genre) {
+                return res.status(404).send(req.params.name + ' was not found.');
+            }
+            res.status(200).json(genre);
+        })
+        .catch(err => {
+            console.error(err);
+            res.status(500).send('Error: ' + err);
+        });
 });
 
 /**
