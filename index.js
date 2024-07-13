@@ -89,7 +89,23 @@ app.get('/directors/:name', (req, res) => {
  * @api {get} /genres?:limit Get all or a limited number of genres
  */
 app.get('/genres?:limit', (req, res) => {
+    if (req.query.limit && !isNaN(req.query.limit) && parseInt(req.query.limit) > 0) {
+        console.log(req.query.limit);
+        genres.find().limit(parseInt(req.query.limit))
+            .then(genres => res.status(200).json(genres))
+            .catch(err => {
+                console.error(err);
+                res.status(500).send('Error: ' + err);
+            });
+    } else {
+        genres.find()
+            .then(genres => res.status(200).json(genres))
+            .catch(err => {
+                console.error(err);
+                res.status(500).send('Error: ' + err);
+            });
 
+    }
 });
 
 /**
