@@ -181,7 +181,32 @@ app.get('/movies/:title', (req, res) => {
  * @api {get} /movies?:limit Get all or a limited number of movies
  */
 app.get('/movies?:limit', (req, res) => {
+    if (req.query.limit && /^[1-9]\d*$/.test(req.query.limit)) {
+        movies.find().limit(parseInt(req.query.limit)).populate('genre').populate('director')
+            .then(movies => {
+                if (movies.length === 0) {
+                    return res.status(404).send('No movies found.');
+                }
+                res.status(200).json(movies)
+            })
+            .catch(err => {
+                console.error(err);
+                res.status(500).send('Error: ' + err);
+            });
 
+    } else {
+        movies.find().populate('genre').populate('director')
+            .then(movies => {
+                if (movies.length === 0) {
+                    return res.status(404).send('No movies found.');
+                }
+                res.status(200).json(movies)
+            })
+            .catch(err => {
+                console.error(err);
+                res.status(500).send('Error: ' + err);
+            });
+    }
 });
 
 /**
