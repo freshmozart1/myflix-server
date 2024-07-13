@@ -91,14 +91,24 @@ app.get('/directors/:name', (req, res) => {
 app.get('/genres?:limit', (req, res) => {
     if (req.query.limit && /^[1-9]\d*$/.test(req.query.limit)) {
         genres.find().limit(parseInt(req.query.limit))
-            .then(genres => res.status(200).json(genres))
+            .then(genres => {
+                if (genres.length === 0) {
+                    return res.status(404).send('No genres found.');
+                }
+                res.status(200).json(genres)
+            })
             .catch(err => {
                 console.error(err);
                 res.status(500).send('Error: ' + err);
             });
     } else {
         genres.find()
-            .then(genres => res.status(200).json(genres))
+            .then(genres => {
+                if (genres.length === 0) {
+                    return res.status(404).send('No genres found.');
+                }
+                res.status(200).json(genres)
+            })
             .catch(err => {
                 console.error(err);
                 res.status(500).send('Error: ' + err);
@@ -200,7 +210,12 @@ app.post('/users', async (req, res) => {
 
 app.get('/users', async (req, res) => {
     await users.find()
-        .then(users => res.status(201).json(users))
+        .then(users => {
+            if (users.length === 0) {
+                return res.status(404).send('No users found.');
+            }
+            res.status(201).json(users)
+        })
         .catch(err => {
             console.error(err);
             res.status(500).send('Error: ' + err);
