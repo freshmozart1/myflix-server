@@ -89,7 +89,8 @@ app.get('/directors/:name', (req, res) => {
  * @api {get} /genres?:limit Get all or a limited number of genres
  */
 app.get('/genres?:limit', (req, res) => {
-    if (req.query.limit && !isNaN(req.query.limit) && parseInt(req.query.limit) > 0) {
+    console.log(typeof req.query.limit);
+    if (req.query.limit && /^[1-9]\d*$/.test(req.query.limit)) {
         console.log(req.query.limit);
         genres.find().limit(parseInt(req.query.limit))
             .then(genres => res.status(200).json(genres))
