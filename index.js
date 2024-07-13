@@ -135,8 +135,19 @@ app.get('/users/:username', async (req, res) => {
 /**
  * @api {delete} /users/:username Delete a user by username
  */
-app.delete('/users/:username', (req, res) => {
-
+app.delete('/users/:username', async (req, res) => {
+    await users.deleteOne({ username: req.params.username })
+        .then(result => {
+            if (result.deletedCount === 0) {
+                return res.status(404).send(req.params.username + ' was not found.');
+            } else {
+                res.status(200).send(req.params.username + ' was deleted.');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            res.status(500).send('Error: ' + err);
+        });
 });
 
 /**
