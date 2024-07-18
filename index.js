@@ -262,7 +262,6 @@ app.post('/movies', (req, res) => {
 
 /**
  * @api {post} /users Create a new user
- * @todo: Favourites are not working
  */
 app.post('/users', async (req, res) => {
     await users.findOne({ username: req.body.username })
@@ -274,7 +273,8 @@ app.post('/users', async (req, res) => {
                     username: req.body.username,
                     password: req.body.password,
                     email: req.body.email,
-                    birthday: req.body.birthday
+                    birthday: req.body.birthday,
+                    favourites: req.body.favourites ? req.body.favourites : []
                 }).then((user) => {
                     res.status(201).json(user);
                 }).catch((err) => {
