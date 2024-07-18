@@ -262,6 +262,7 @@ app.post('/movies', (req, res) => {
 
 /**
  * @api {post} /users Create a new user
+ * @todo: Favourites are not working
  */
 app.post('/users', async (req, res) => {
     await users.findOne({ username: req.body.username })
@@ -337,10 +338,48 @@ app.delete('/users/:username', async (req, res) => {
 });
 
 /**
+ * This function checks if there are common keys between a request body and a mongoose schema
+ * 
+ * @param {Array} body 
+ * @param {Object} schema 
+ * @returns an object with key-value-pairs that are common between the body and the schema, or false if there are none
+ */
+function _hasCommonKeyValuePairs(body, schema) {
+    const bodyKeys = Object.keys(body);
+    const schemaSet = new Set(Object.keys(schema.paths));
+    const commonKeyValuePairs = {};
+    let hasCommonKeys = false;
+    for (const key of bodyKeys) {
+        if (schemaSet.has(key)) {
+            commonKeyValuePairs[key] = body[key];
+            hasCommonKeys = true;
+        }
+    }
+    return hasCommonKeys ? commonKeyValuePairs : false;
+}
+
+/**
  * @api {patch} /users/:username Update a user by username
+ * @todo: Not working with favourites
  */
 app.patch('/users/:username', (req, res) => {
-
+    const commonKeyValuePairs = _hasCommonKeyValuePairs(req.body, users.schema);
+    if (!commonKeyValuePairs) {
+        return res.status(400).send('No keys in the requests body match the databases schema.').end();
+    } else {
+        users.findOneAndUpdate({ username: req.params.username}, commonKeyValuePairs, { new: true })
+                .then(user => {
+                    if (!user) {
+                        return res.status(404).send(req.params.username + ' was not found.').end();
+                    } else {
+                        return res.status(200).json(user).end();
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    return res.status(500).send('Error: ' + err).end();
+                });
+    }
 });
 
 app.use(methodOverride());
