@@ -288,7 +288,7 @@ app.post('/users', async (req, res) => {
         });
 });
 
-app.get('/users', async (req, res) => {
+/*app.get('/users', async (req, res) => {
     await users.find()
         .then(users => {
             if (users.length === 0) {
@@ -302,9 +302,9 @@ app.get('/users', async (req, res) => {
         });
 });
 
-/**
+
  * @api {get} /users/:username Get a user by username
- */
+ 
 app.get('/users/:username', async (req, res) => {
     await users.findOne({ username: req.params.username })
         .then(user => {
@@ -317,7 +317,7 @@ app.get('/users/:username', async (req, res) => {
             console.error(err);
             res.status(500).send('Error: ' + err);
         });
-});
+});*/
 
 /**
  * @api {delete} /users/:username Delete a user by username
