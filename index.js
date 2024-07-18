@@ -360,7 +360,6 @@ function _hasCommonKeyValuePairs(body, schema) {
 
 /**
  * @api {patch} /users/:username Update a user by username
- * @todo: Not working with favourites
  */
 app.patch('/users/:username', (req, res) => {
     const commonKeyValuePairs = _hasCommonKeyValuePairs(req.body, users.schema);
@@ -372,7 +371,7 @@ app.patch('/users/:username', (req, res) => {
                     if (!user) {
                         return res.status(404).send(req.params.username + ' was not found.').end();
                     } else {
-                        return res.status(200).json(user).end();
+                        return res.status(200).send('Successfully updated user '+req.params.username).end();
                     }
                 })
                 .catch(err => {
