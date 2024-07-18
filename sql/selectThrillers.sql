@@ -1,1 +1,0 @@
-SELECT m.* FROM movies m JOIN genres g ON m.genre = g.id WHERE g.name = 'Thriller';

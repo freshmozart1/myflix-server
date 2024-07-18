@@ -1,1 +1,0 @@
-INSERT INTO genres(name, description) VALUES('THRILLER', 'The ‘Thriller’ movie genre is characterized by its focus on suspense, tension, and excitement, often involving high-stakes scenarios and unexpected plot twists that keep the audience on the edge of their seats.')
