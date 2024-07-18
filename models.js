@@ -12,7 +12,7 @@ let userSchema = mongoose.Schema({
     username: { type: String, required: true },
     password: { type: String, required: true },
     email: { type: String, required: true },
-    birthday: Date,
+    birthday: {type: mongoose.Schema.Types.Date},
     favourites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'movie' }]
 });
 
@@ -23,8 +23,8 @@ let genreSchema = mongoose.Schema({
 
 let directorSchema = mongoose.Schema({
     name: { type: String, required: true },
-    birthday: { type: Date, required: true },
-    deathday: { type: Date },
+    birthday: { type: mongoose.Schema.Types.Date, required: true },
+    deathday: { type: mongoose.Schema.Types.Date },
     biography: { type: String, required: true }
 });
 
