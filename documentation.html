@@ -34,8 +34,7 @@
             <li>
                 /users <a href="#postUser">POST</a>
                 <ul>
-                    <li>*/:username <a href="#getUserByName">GET</a>, <a href="#delUser">DEL</a>, <a
-                            href="#patchUser">PATCH</a></li>
+                    <li>*/:username <a href="#delUser">DEL</a>, <a href="#patchUser">PATCH</a></li>
                 </ul>
             </li>
         </nav>
@@ -58,7 +57,7 @@
                     <td>Adds a new director</td>
                     <td>
                         <code>
-                            {"Name": "String", "Bio": "String", "Birth": "String", "Death": "String"}
+                            {"name": String, "birthday": Date, "deathday": Date, "biography": String}
                         </code>
                     </td>
                     <td>none</td>
@@ -72,7 +71,7 @@
                     <td>none</td>
                     <td>
                         <code>
-                            {"directors": [{"id": 1, "name": "Francis Ford Coppola", "birthday": "1939-04-07", "deathday": null, "biography": "Francis is awesome!"}]}
+                            [{"_id": String, "name": String, "birthday": Date, "deathday": Date, "biography": String}]
                         </code>
                     </td>
                 </tr>
@@ -83,7 +82,7 @@
                     <td>none</td>
                     <td>
                         <code>
-                            {"id": 1, "name": "Francis Ford Coppola", "birthday": "1939-04-07", "deathday": null, "biography": "Francis is awesome!"}
+                            {"_id": String, "name": String, "birthday": Date, "deathday": Date, "biography": String}
                         </code>
                     </td>
                 </tr>
@@ -93,7 +92,7 @@
                     <td>Adds a new genre to the database</td>
                     <td>
                         <code>
-                            {"id": 1, "name": "Thriller", "description": "Thriller description"}
+                            {"name": String, "description": String}
                         </code>
                     </td>
                     <td>none</td>
@@ -105,7 +104,7 @@
                     <td>none</td>
                     <td>
                         <code>
-                            {"genres": [{"id": 1, "name": "Thriller", "description": "Thriller description"}]}
+                            [{"_id": String, "name": String, "description": String}]
                         </code>
                     </td>
                 </tr>
@@ -116,7 +115,7 @@
                     <td>none</td>
                     <td>
                         <code>
-                            {"id": 1, "name": "Thriller", "description": "Thriller description"}
+                            {"_id": String, "name": String, "description": String}
                         </code>
                     </td>
                 </tr>
@@ -127,7 +126,7 @@
                         a movie.</td>
                     <td>
                         <code>
-                            {"id":1, "title":"The Godfather", "description":"description", "genre":1, "director":1, "image":"imagelink"}
+                            {"_id":String, "title":String, "description": String, "genre":String, "director":String, "imagePath":String}
                         </code>
                     </td>
                     <td>none</td>
@@ -139,19 +138,18 @@
                     <td>none</td>
                     <td>
                         <code>
-                            {"movies": [{"id": 1, "title": "The Godfather", "description": "description", "genre": "Thriller", "director": "Francis Ford Coppola", "image": "imagelink"}]}
+                            [{"_id": String, "title": String, "description": String, "genre": {"_id": String, "name": String, "description": String}, "director": {"_id": String, "name": String, "birthday": String, "deathday": String, "biography": String}, "imagePath": String}]
                         </code>
                     </td>
                 </tr>
                 <tr>
                     <td id="getMovieByName">/movies/:title</td>
                     <td>GET</td>
-                    <td>Returns a movie. Selects movie by title.</td>
+                    <td>Returns a movie. Selects movie by title, if it exists in the database.</td>
                     <td>none</td>
                     <td>
                         <code>
-                            {"id":1, "title":"The Godfather", "description":"description", "genre":"Thriller", "director":"Francis Ford
-                            Coppola", "image":"imagelink"}
+                            {"_id": String, "title": String, "description": String, "genre": {"_id": String, "name": String, "description": String}, "director": {"_id": String, "name": String, "birthday": String, "deathday": String, "biography": String}, "imagePath": String}
                         </code>
                     </td>
                 </tr>
@@ -161,21 +159,10 @@
                     <td>Adds a new user to the database.</td>
                     <td>
                         <code>
-                            {"username": "freshmozart", "email": "freshmozart@gmx.com", "password": "beathoven123", "birthday": "1994-09-26", "favourites": null}
+                            {"username": String, "email": String, "password": String, "birthday": Date, "favourites": [String, ...]}
                         </code>
                     </td>
                     <td>none</td>
-                </tr>
-                <tr>
-                    <td id="getUserByName">/users/:username</td>
-                    <td>GET</td>
-                    <td>Returns a user with the name that is stored in the parameter username.</td>
-                    <td>none</td>
-                    <td>
-                        <code>
-                            {"username": "freshmozart", "email": "freshmozart@gmx.com", "password": "beathoven123", "birthday": "1994-09-26", "favourites": null}
-                        </code>
-                    </td>
                 </tr>
                 <tr>
                     <td id="delUser">/users/:username</td>
@@ -193,7 +180,7 @@
                     </td>
                     <td>
                         <code>
-                            {"password": "newpassword456"}
+                            {"password": String}
                         </code>
                     </td>
                     <td>none</td>
