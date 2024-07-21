@@ -217,7 +217,7 @@ app.get('/movies?:limit', (req, res) => {
 /**
  * @api {post} /movies Create a new movie
  */
-app.post('/movies', (req, res) => {
+app.post('/movies', passport.authenticate('jwt', {session: false}), (req, res) => {
     movies.findOne({ title: req.body.title })
         .then(movie => {
             if (movie) {
@@ -298,37 +298,6 @@ app.post('/users', async (req, res) => {
             res.status(500).send('Error: ' + err);
         });
 });
-
-/*app.get('/users', async (req, res) => {
-    await users.find()
-        .then(users => {
-            if (users.length === 0) {
-                return res.status(404).send('No users found.');
-            }
-            res.status(201).json(users)
-        })
-        .catch(err => {
-            console.error(err);
-            res.status(500).send('Error: ' + err);
-        });
-});
-
-
- * @api {get} /users/:username Get a user by username
- 
-app.get('/users/:username', async (req, res) => {
-    await users.findOne({ username: req.params.username })
-        .then(user => {
-            if (!user) {
-                return res.status(404).send(req.params.username + ' was not found.');
-            }
-            res.status(200).json(user);
-        })
-        .catch(err => {
-            console.error(err);
-            res.status(500).send('Error: ' + err);
-        });
-});*/
 
 /**
  * @api {delete} /users/:username Delete a user by username
