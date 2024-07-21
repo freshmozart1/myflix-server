@@ -376,7 +376,7 @@ app.patch('/users/:username', passport.authenticate('jwt', {session: false}), (r
     const commonKeyValuePairs = _hasCommonKeyValuePairs(req.body, users.schema);
     if (!commonKeyValuePairs) {
         return res.status(400).send('No keys in the requests body match the databases schema.').end();
-    } else if (req.user.Username !== req.params.username) {
+    } else if (req.user.username !== req.params.username) {
         return res.status(403).send('You are not allowed to update this user.').end();
     } else {
         users.findOneAndUpdate({ username: req.params.username}, commonKeyValuePairs, { new: true })
