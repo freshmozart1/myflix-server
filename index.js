@@ -142,7 +142,7 @@ app.get('/genres/:name', (req, res) => {
 /**
  * @api {post} /genres Create a new genre
  */
-app.post('/genres', (req, res) => {
+app.post('/genres',  passport.authenticate('jwt', {session: false}), (req, res) => {
     genres.findOne({ name: req.body.name })
         .then(genre => {
             if (genre) {
@@ -168,7 +168,7 @@ app.post('/genres', (req, res) => {
 /**
  * @api {get} /movies/:title Get a movie by title
  */
-app.get('/movies/:title', passport.authenticate('jwt', {session: false}), (req, res) => {
+app.get('/movies/:title', (req, res) => {
     movies.findOne({ title: req.params.title }).populate('genre').populate('director')
         .then(movie => {
             if (!movie) {
