@@ -265,16 +265,22 @@ app.post('/movies', (req, res) => {
  */
 app.post('/users', async (req, res) => {
     await users.findOne({ username: req.body.username })
-        .then((user) => {
+        .then(async (user) => {
             if (user) {
                 return res.status(400).send(req.body.username + ' already exists.');
+            }
+            if (!Array.isArray(req.body.favourites)) {
+                return res.status(400).send('Favourites must be an array.');
+            }
+            if((req.body.favourites.length !== 0) && ((await movies.find({_id: {$in: req.body.favourites}})).length !== req.body.favourites.length)) {
+                return res.status(404).send('One or more of the movies in the favourites list could not be found.');
             } else {
                 users.create({
                     username: req.body.username,
                     password: req.body.password,
                     email: req.body.email,
                     birthday: req.body.birthday,
-                    favourites: req.body.favourites ? req.body.favourites : []
+                    favourites: req.body.favourites
                 }).then((user) => {
                     res.status(201).json(user);
                 }).catch((err) => {
