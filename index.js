@@ -333,7 +333,10 @@ app.get('/users/:username', async (req, res) => {
 /**
  * @api {delete} /users/:username Delete a user by username
  */
-app.delete('/users/:username', async (req, res) => {
+app.delete('/users/:username', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    if (req.user.username !== req.params.username) {
+        return res.status(403).send('You are not allowed to delete this user.');
+    }
     await users.deleteOne({ username: req.params.username })
         .then(result => {
             if (result.deletedCount === 0) {
