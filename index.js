@@ -1,13 +1,15 @@
 const express = require('express'),
-    app = express(),
     mongoose = require('mongoose'),
+    morgan = require('morgan'),
+    methodOverride = require('method-override'),
+    passport = require('passport'),
     models = require('./models.js'),
+    auth = require('./auth.js'),
+    app = express(),
     movies = models.movie,
     users = models.user,
     directors = models.director,
-    genres = models.genre,
-    morgan = require('morgan'),
-    methodOverride = require('method-override');
+    genres = models.genre;
 
 mongoose.connect('mongodb://localhost:27017/myflix');
 
@@ -17,6 +19,9 @@ app.use(express.urlencoded({
     extended: true
 }));
 app.use(express.json());
+
+auth(app);
+require('./passport.js');
 
 /**
  * @api {post} /directors Create a new director
@@ -163,7 +168,7 @@ app.post('/genres', (req, res) => {
 /**
  * @api {get} /movies/:title Get a movie by title
  */
-app.get('/movies/:title', (req, res) => {
+app.get('/movies/:title', passport.authenticate('jwt', {session: false}), (req, res) => {
     movies.findOne({ title: req.params.title }).populate('genre').populate('director')
         .then(movie => {
             if (!movie) {

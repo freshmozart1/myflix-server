@@ -2,7 +2,7 @@ const passport = require('passport'),
     localStrategy = require('passport-local').Strategy,
     models = require('./models.js'),
     passportJWT = require("passport-jwt"),
-    users = models.User,
+    users = models.user,
     jwtStrategy = passportJWT.Strategy,
     extractJWT = passportJWT.ExtractJwt;
 
