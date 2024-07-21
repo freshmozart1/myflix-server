@@ -26,7 +26,7 @@ require('./passport.js');
 /**
  * @api {post} /directors Create a new director
  */
-app.post('/directors', async (req, res) => {
+app.post('/directors', passport.authenticate('jwt', {session: false}), async (req, res) => {
     await directors.findOne({ name: req.body.name })
         .then(director => {
             if (director) {
