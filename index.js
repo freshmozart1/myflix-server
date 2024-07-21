@@ -372,10 +372,12 @@ function _hasCommonKeyValuePairs(body, schema) {
 /**
  * @api {patch} /users/:username Update a user by username
  */
-app.patch('/users/:username', (req, res) => {
+app.patch('/users/:username', passport.authenticate('jwt', {session: false}), (req, res) => {
     const commonKeyValuePairs = _hasCommonKeyValuePairs(req.body, users.schema);
     if (!commonKeyValuePairs) {
         return res.status(400).send('No keys in the requests body match the databases schema.').end();
+    } else if (req.user.Username !== req.params.username) {
+        return res.status(403).send('You are not allowed to update this user.').end();
     } else {
         users.findOneAndUpdate({ username: req.params.username}, commonKeyValuePairs, { new: true })
                 .then(user => {
