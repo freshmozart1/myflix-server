@@ -3,6 +3,7 @@ const express = require('express'),
     morgan = require('morgan'),
     methodOverride = require('method-override'),
     passport = require('passport'),
+    cors = require('cors'),
     models = require('./models.js'),
     auth = require('./auth.js'),
     app = express(),
@@ -13,6 +14,15 @@ const express = require('express'),
 
 mongoose.connect('mongodb://localhost:27017/myflix');
 
+const allowedOrigins = ['http://localhost:8080'];
+
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) === -1) return  callback(new Error('CORS doesn\'t allow access from origin ' + origin), false);
+        return callback(null, true);
+    }
+}));
 app.use(morgan('common'));
 app.use(express.static(__dirname));
 app.use(express.urlencoded({
