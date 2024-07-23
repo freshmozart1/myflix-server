@@ -10,14 +10,14 @@ passport.use(new localStrategy({
     usernameField: 'username',
     passwordField: 'password'
 }, async (username, password, callback) => {
-    console.log(`${username} ${password}`);
     await users.findOne ({ username: username})
         .then(user => {
             if (!user) {
-                console.log('incorrect username');
-                return callback(null, false, {message: 'Incorrect username or password.'});
+                return callback(null, false, {message: 'Incorrect username'});
             }
-            console.log('finished');
+            if (!user.validatePassword(password)) {
+                return callback(null, false, {message: 'Incorrect password'});
+            }
             return callback(null, user);
         })
         .catch(error => {

@@ -292,7 +292,7 @@ app.post('/users', async (req, res) => {
             } else {
                 users.create({
                     username: req.body.username,
-                    password: req.body.password,
+                    password: users.hashPassword(req.body.password),
                     email: req.body.email,
                     birthday: req.body.birthday,
                     favourites: req.body.favourites
