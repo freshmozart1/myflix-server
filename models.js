@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 
 let movieSchema = mongoose.Schema({
     title: { type: String, required: true },
@@ -15,6 +16,20 @@ let userSchema = mongoose.Schema({
     birthday: {type: mongoose.Schema.Types.Date},
     favourites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'movie' }]
 });
+
+/**
+ * Generates a hashed password
+ * @param {*} password the password to be hashed
+ * @returns  the hashed password
+ * @todo replace snychronous bcrypt.hash with asynchronous bcrypt.hash to avoid blocking the event loop
+ */
+userSchema.statics.hashPassword = (password)  => {
+    return bcrypt.hashSync(password, 10);
+};
+
+userSchema.methods.validatePassword = function(password) { //because we need to access the user object, we can't use an arrow function
+    return bcrypt.compareSync(password, this.password);
+};
 
 let genreSchema = mongoose.Schema({
     name: { type: String, required: true },
