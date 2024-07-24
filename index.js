@@ -13,7 +13,7 @@ const express = require('express'),
     directors = models.director,
     genres = models.genre;
 
-mongoose.connect('mongodb+srv://freshmozart:eLxjHJFD9TMWLyg2@myflixcluster.55bnxmn.mongodb.net/?retryWrites=true&w=majority&appName=myFlixCluster');
+mongoose.connect(process.env.CONNECTION_URI);
 
 const allowedOrigins = ['http://localhost:8080'];
 
