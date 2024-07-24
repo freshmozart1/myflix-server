@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken'),
     
 require('./passport.js');
 
-const jwtSecret = 'your_jwt_secret';
+const jwtSecret = process.env.JWT_SECRET;
 const generateJWTToken = (user) => {
     return jwt.sign(user, jwtSecret, {
         subject: user.username,
@@ -14,7 +14,7 @@ const generateJWTToken = (user) => {
 
 module.exports = (router) => {
     router.post('/login', (req, res) => {
-        passport.authenticate('local', {session: false}, (error, user, info) => {
+        passport.authenticate('local', {session: false}, (error, user) => {
             if (error || !user) {
                 return res.status(400).json({
                     message: 'Something is not right',
