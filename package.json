@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node index.js"
   },
   "keywords": [],
   "author": "",
@@ -18,8 +18,19 @@
     "stylelint-config-standard": "^36.0.1"
   },
   "dependencies": {
-    "body-parser": "^1.20.2",
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
     "express": "^4.19.2",
-    "lodash": "^4.17.21"
+    "express-validator": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "lodash": "^4.17.21",
+    "method-override": "^3.0.0",
+    "mongodb": "^6.8.0",
+    "mongoose": "^8.5.0",
+    "morgan": "^1.10.0",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "passport-local": "^1.0.0",
+    "sqlite3": "^5.1.7"
   }
 }
