@@ -4,7 +4,7 @@ const express = require('express'),
     methodOverride = require('method-override'),
     passport = require('passport'),
     cors = require('cors'),
-    {check, validationResult} = require('express-validator'),
+    {check, matchedData, validationResult} = require('express-validator'),
     models = require('./models.js'),
     auth = require('./auth.js'),
     app = express(),
@@ -280,17 +280,23 @@ app.post('/movies', passport.authenticate('jwt', {session: false}), (req, res) =
  * @api {post} /users Create a new user
  */
 app.post('/users', [
-    check('username', 'Username is required').isLength({min: 5}),
+    check('username', 'Username is required').isLength({min: 5}).escape(),
     check('username', 'Username contains non alphanumeric characters - not allowed.').isAlphanumeric(),
-    check('password', 'Password is required').not().isEmpty(),
-    check('email', 'Email does not appear to be valid').isEmail()
+    check('email', 'email can\'t be empty').notEmpty(),
+    check('email', 'Email does not appear to be valid').isEmail().normalizeEmail(),
+    check('password', 'Password is required').notEmpty(),
+    check('birthday', 'Birthday must be a date').optional({checkFalsy: true}).isDate(),
+    check('favourites', 'Favourites must be an array').optional({checkFalsy: true}).isArray()
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
-    await users.findOne({ username: req.body.username })
+    const data = matchedData(req);
+    console.log(data);
+    /*
+    await users.findOne({ username: data.username})
         .then(async (user) => {
             if (user) {
-                return res.status(400).send(req.body.username + ' already exists.');
+                return res.status(400).send(data.username + ' already exists.');
             }
             if (!Array.isArray(req.body.favourites)) {
                 return res.status(400).send('Favourites must be an array.');
@@ -314,7 +320,7 @@ app.post('/users', [
         }).catch((err) => {
             console.error(err);
             res.status(500).send('Error: ' + err);
-        });
+        });*/
 });
 
 /**
