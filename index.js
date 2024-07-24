@@ -4,6 +4,7 @@ const express = require('express'),
     methodOverride = require('method-override'),
     passport = require('passport'),
     cors = require('cors'),
+    {check, validationResult} = require('express-validator'),
     models = require('./models.js'),
     auth = require('./auth.js'),
     app = express(),
@@ -278,7 +279,14 @@ app.post('/movies', passport.authenticate('jwt', {session: false}), (req, res) =
 /**
  * @api {post} /users Create a new user
  */
-app.post('/users', async (req, res) => {
+app.post('/users', [
+    check('username', 'Username is required').isLength({min: 5}),
+    check('username', 'Username contains non alphanumeric characters - not allowed.').isAlphanumeric(),
+    check('password', 'Password is required').not().isEmpty(),
+    check('email', 'Email does not appear to be valid').isEmail()
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
     await users.findOne({ username: req.body.username })
         .then(async (user) => {
             if (user) {
