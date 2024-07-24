@@ -286,30 +286,25 @@ app.post('/users', [
     check('email', 'Email does not appear to be valid').isEmail().normalizeEmail(),
     check('password', 'Password is required').notEmpty(),
     check('birthday', 'Birthday must be a date').optional({checkFalsy: true}).isDate(),
-    check('favourites', 'Favourites must be an array').optional({checkFalsy: true}).isArray()
+    check('favourites', 'Favourites must be an array').optional({checkFalsy: true}).isArray({min: 1})
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
     const data = matchedData(req);
-    console.log(data);
-    /*
     await users.findOne({ username: data.username})
         .then(async (user) => {
             if (user) {
                 return res.status(400).send(data.username + ' already exists.');
             }
-            if (!Array.isArray(req.body.favourites)) {
-                return res.status(400).send('Favourites must be an array.');
-            }
-            if((req.body.favourites.length !== 0) && ((await movies.find({_id: {$in: req.body.favourites}})).length !== req.body.favourites.length)) {
+            if(data.favourites && ((await movies.find({_id: {$in: data.favourites}})).length !== data.favourites.length)) {
                 return res.status(404).send('One or more of the movies in the favourites list could not be found.');
             } else {
                 users.create({
-                    username: req.body.username,
-                    password: users.hashPassword(req.body.password),
-                    email: req.body.email,
-                    birthday: req.body.birthday,
-                    favourites: req.body.favourites
+                    username: data.username,
+                    password: users.hashPassword(data.password),
+                    email: data.email,
+                    birthday: data.birthday ? data.birthday : null,
+                    favourites: data.favourites ? data.favourites : []
                 }).then((user) => {
                     res.status(201).json(user);
                 }).catch((err) => {
@@ -320,7 +315,7 @@ app.post('/users', [
         }).catch((err) => {
             console.error(err);
             res.status(500).send('Error: ' + err);
-        });*/
+        });
 });
 
 /**
