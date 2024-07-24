@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"
+    "start": "CONNECTION_URI='mongodb+srv://freshmozart:eLxjHJFD9TMWLyg2@myflixcluster.55bnxmn.mongodb.net/?retryWrites=true&w=majority&appName=myFlixCluster' JWT_SECRET='XqH2!ghLU?p@~puk>a9kjpBJ=u,txF4t' node index.js"
   },
   "keywords": [],
   "author": "",
