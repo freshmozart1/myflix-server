@@ -280,13 +280,15 @@ app.post('/movies', passport.authenticate('jwt', {session: false}), (req, res) =
  * @api {post} /users Create a new user
  */
 app.post('/users', [
-    check('username', 'Username is required').isLength({min: 5}).escape(),
-    check('username', 'Username contains non alphanumeric characters - not allowed.').isAlphanumeric(),
-    check('email', 'email can\'t be empty').notEmpty(),
-    check('email', 'Email does not appear to be valid').isEmail().normalizeEmail(),
-    check('password', 'Password is required').notEmpty(),
-    check('birthday', 'Birthday must be a date').optional({checkFalsy: true}).isDate(),
-    check('favourites', 'Favourites must be an array').optional({checkFalsy: true}).isArray({min: 1})
+    check('username', 'Username is required').isLength({min: 5}).escape().bail({level: 'request'}),
+    check('username', 'Username contains non alphanumeric characters - not allowed.').isAlphanumeric().bail({level: 'request'}),
+    check('email', 'Email is required').notEmpty().bail({level: 'request'}),
+    check('email', 'Email does not appear to be valid').isEmail().normalizeEmail().bail({level: 'request'}),
+    check('password', 'Password is required').notEmpty().bail({level: 'request'}),
+    check('birthday', 'Birthday must be a date (YYYY-MM-DD)').optional({values: 'falsy'}).custom(value => { //The express-validators isDate() method throws a TypeError, if value is not a date string.
+        return !isNaN(Date.parse(value));
+    }).bail({level: 'request'}),
+    check('favourites', 'Favourites must be an array').optional({values: 'falsy'}).isArray({min: 1})
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
@@ -304,7 +306,7 @@ app.post('/users', [
                     password: users.hashPassword(data.password),
                     email: data.email,
                     birthday: data.birthday ? data.birthday : null,
-                    favourites: data.favourites ? data.favourites : []
+                    favourites: data.favourites ? data.favourites : null
                 }).then((user) => {
                     res.status(201).json(user);
                 }).catch((err) => {
@@ -312,7 +314,8 @@ app.post('/users', [
                     res.status(500).send('Error: ' + err);
                 });
             }
-        }).catch((err) => {
+        })
+        .catch((err) => {
             console.error(err);
             res.status(500).send('Error: ' + err);
         });
