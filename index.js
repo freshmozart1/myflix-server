@@ -4,7 +4,7 @@ const express = require('express'),
     methodOverride = require('method-override'),
     passport = require('passport'),
     cors = require('cors'),
-    {check, matchedData, validationResult} = require('express-validator'),
+    {check, param, matchedData, validationResult} = require('express-validator'),
     models = require('./models.js'),
     auth = require('./auth.js'),
     app = express(),
@@ -324,11 +324,28 @@ app.post('/users', [
 /**
  * @api {delete} /users/:username Delete a user by username
  */
-app.delete('/users/:username', passport.authenticate('jwt', {session: false}), async (req, res) => {
-    if (req.user.username !== req.params.username) {
-        return res.status(403).send('You are not allowed to delete this user.');
-    }
-    await users.deleteOne({ username: req.params.username })
+app.delete('/users/:username', [
+    passport.authenticate('jwt', {session: false}),
+    param('username', 'username_required').isLength({min: 5}).escape().bail({level: 'request'}),
+    param('username', 'not_allowed').custom((value, {req}) => {
+        return value === req.user.username;
+    })
+], async (req, res) => {
+    let errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        errors = errors.array();
+        switch (errors[0].msg) {
+            case 'username_required':
+                res.status(422).end('Please provide a valid username.');
+                break;
+            case 'not_allowed':
+                res.status(403).end('You are not allowed to delete this user!');
+                break;
+            default:
+                res.status(422).json({ errors });
+        }
+    } else {
+        await users.deleteOne({ username: req.params.username })
         .then(result => {
             if (result.deletedCount === 0) {
                 return res.status(404).send(req.params.username + ' was not found.');
@@ -340,6 +357,7 @@ app.delete('/users/:username', passport.authenticate('jwt', {session: false}), a
             console.error(err);
             res.status(500).send('Error: ' + err);
         });
+    }
 });
 
 /**
