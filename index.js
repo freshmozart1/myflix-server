@@ -4,7 +4,7 @@ const express = require('express'),
     methodOverride = require('method-override'),
     passport = require('passport'),
     cors = require('cors'),
-    {check, param, matchedData, validationResult} = require('express-validator'),
+    {check, param, matchedData, validationResult, body, checkExact} = require('express-validator'),
     models = require('./models.js'),
     auth = require('./auth.js'),
     app = express(),
@@ -361,48 +361,59 @@ app.delete('/users/:username', [
 });
 
 /**
- * This function checks if there are common keys between a request body and a mongoose schema
- * 
- * @param {Array} body 
- * @param {Object} schema 
- * @returns an object with key-value-pairs that are common between the body and the schema, or false if there are none
- */
-function _hasCommonKeyValuePairs(body, schema) {
-    const bodyKeys = Object.keys(body);
-    const schemaSet = new Set(Object.keys(schema.paths));
-    const commonKeyValuePairs = {};
-    let hasCommonKeys = false;
-    for (const key of bodyKeys) {
-        if (schemaSet.has(key)) {
-            commonKeyValuePairs[key] = body[key];
-            hasCommonKeys = true;
-        }
-    }
-    return hasCommonKeys ? commonKeyValuePairs : false;
-}
-
-/**
  * @api {patch} /users/:username Update a user by username
  */
-app.patch('/users/:username', passport.authenticate('jwt', {session: false}), (req, res) => {
-    const commonKeyValuePairs = _hasCommonKeyValuePairs(req.body, users.schema);
-    if (!commonKeyValuePairs) {
-        return res.status(400).send('No keys in the requests body match the databases schema.').end();
-    } else if (req.user.username !== req.params.username) {
-        return res.status(403).send('You are not allowed to update this user.').end();
+app.patch('/users/:username', [
+    passport.authenticate('jwt', {session: false}),
+    param('username', 'username_required').isLength({min: 5}).escape().bail({level: 'request'}),
+    param('username', 'not_allowed').custom((value, {req}) => { //Change this to oneOf() when super users are implemented.
+        return value === req.user.username;
+    }).bail({level: 'request'}),
+    checkExact([
+        body('username', 'Username must be at least 5 characters long,').isLength({min: 5}).escape().optional({values: 'falsy'}),
+        body('username', 'Username contains non alphanumeric characters - not allowed.').isAlphanumeric().escape().optional({values: 'falsy'}),
+        body('email', 'Email does not appear to be valid').isEmail().normalizeEmail().optional({values: 'falsy'}),
+        body('password', 'Password is required').optional({values: 'falsy'}),
+        body('birthday', 'Birthday must be a date (YYYY-MM-DD)').custom(value => { //The express-validators isDate() method throws a TypeError, if value is not a date string.
+            return !isNaN(Date.parse(value));
+        }).optional({values: 'falsy'}),
+        body('favourites', 'Favourites must be an array').isArray({min: 1}).optional({values: 'falsy'}).custom(async favourites => {
+            for (const id of favourites) {
+                if (!(await movies.findById(id))) return Promise.reject('Invalid movie ID in favourites.');
+            }
+            return true;
+        })
+    ])
+], (req, res) => {
+    let errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        errors = errors.array();
+        switch (errors[0].msg) {
+            case 'username_required':
+                res.status(422).end('Please provide a valid username.');
+                break;
+            case 'not_allowed':
+                res.status(403).end('You are not allowed to update this user!');
+                break;
+            default:
+                res.status(422).json({ errors }).end();
+        }
     } else {
-        users.findOneAndUpdate({ username: req.params.username}, commonKeyValuePairs, { new: true })
-                .then(user => {
-                    if (!user) {
-                        return res.status(404).send(req.params.username + ' was not found.').end();
-                    } else {
-                        return res.status(200).send('Successfully updated user '+req.params.username).end();
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    return res.status(500).send('Error: ' + err).end();
-                });
+        const data = matchedData(req);
+        if((Object.keys(data).length === 1) && (data.username === req.user.username)) return res.status(400).send('No valid data provided.').end();
+        console.log(data);
+        users.findOneAndUpdate({ username: req.params.username }, data, {new: true}) //Do not use data.username here in case a super user wants to change the username of another user.
+            .then(user => {
+                if (!user) {
+                    return res.status(404).send(req.params.username + ' was not found.');
+                } else {
+                    return res.status(200).send('Successfully updated user ' + req.params.username);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                return res.status(500).send('Error: ' + err);
+            });
     }
 });
 
