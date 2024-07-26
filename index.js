@@ -280,15 +280,20 @@ app.post('/movies', passport.authenticate('jwt', {session: false}), (req, res) =
  * @api {post} /users Create a new user
  */
 app.post('/users', [
-    check('username', 'Username is required').isLength({min: 5}).escape().bail({level: 'request'}),
-    check('username', 'Username contains non alphanumeric characters - not allowed.').isAlphanumeric().bail({level: 'request'}),
-    check('email', 'Email is required').notEmpty().bail({level: 'request'}),
-    check('email', 'Email does not appear to be valid').isEmail().normalizeEmail().bail({level: 'request'}),
-    check('password', 'Password is required').notEmpty().bail({level: 'request'}),
-    check('birthday', 'Birthday must be a date (YYYY-MM-DD)').optional({values: 'falsy'}).custom(value => { //The express-validators isDate() method throws a TypeError, if value is not a date string.
+    body('username', 'Username is required').isLength({min: 5}).escape().bail({level: 'request'}),
+    body('username', 'Username contains non alphanumeric characters - not allowed.').isAlphanumeric().bail({level: 'request'}),
+    body('email', 'Email is required').notEmpty().bail({level: 'request'}),
+    body('email', 'Email does not appear to be valid').isEmail().normalizeEmail().bail({level: 'request'}),
+    body('password', 'Password is required').notEmpty().bail({level: 'request'}),
+    body('birthday', 'Birthday must be a date (YYYY-MM-DD)').optional({values: 'falsy'}).custom(value => { //The express-validators isDate() method throws a TypeError, if value is not a date string.
         return !isNaN(Date.parse(value));
     }).bail({level: 'request'}),
-    check('favourites', 'Favourites must be an array').optional({values: 'falsy'}).isArray({min: 1})
+    body('favourites', 'Favourites must be an non empty array').isArray({min: 1}).optional({values: 'falsy'}).custom(async favourites => {
+        for (const id of favourites) {
+            if (!(await movies.findById(id))) return Promise.reject('Invalid movie ID in favourites.');
+        }
+        return true;
+    })
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
@@ -297,9 +302,6 @@ app.post('/users', [
         .then(async (user) => {
             if (user) {
                 return res.status(400).send(data.username + ' already exists.');
-            }
-            if(data.favourites && ((await movies.find({_id: {$in: data.favourites}})).length !== data.favourites.length)) {
-                return res.status(404).send('One or more of the movies in the favourites list could not be found.');
             } else {
                 users.create({
                     username: data.username,
@@ -377,7 +379,7 @@ app.patch('/users/:username', [
         body('birthday', 'Birthday must be a date (YYYY-MM-DD)').custom(value => { //The express-validators isDate() method throws a TypeError, if value is not a date string.
             return !isNaN(Date.parse(value));
         }).optional({values: 'falsy'}),
-        body('favourites', 'Favourites must be an array').isArray({min: 1}).optional({values: 'falsy'}).custom(async favourites => {
+        body('favourites', 'Favourites must be an non empty array').isArray({min: 1}).optional({values: 'falsy'}).custom(async favourites => {
             for (const id of favourites) {
                 if (!(await movies.findById(id))) return Promise.reject('Invalid movie ID in favourites.');
             }
