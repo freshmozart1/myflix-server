@@ -4,7 +4,7 @@ const express = require('express'),
     methodOverride = require('method-override'),
     passport = require('passport'),
     cors = require('cors'),
-    {check, param, matchedData, validationResult, body, checkExact} = require('express-validator'),
+    {param, matchedData, validationResult, body, checkExact} = require('express-validator'),
     models = require('./models.js'),
     auth = require('./auth.js'),
     app = express(),
@@ -33,6 +33,41 @@ app.use(express.json());
 
 auth(app);
 require('./passport.js');
+
+/**
+ * This helper function checks if a field in the request body is empty and bails out if it is empty.
+ * @param {String} field The field to check
+ * @param {String} message The error message to return if the field is empty
+ * @returns {ValidationChain}
+ */
+function _ifBodyFieldEmptyBail(field, message, bailLevel = 'request') {
+    return body(field, message).notEmpty().bail({level: bailLevel});
+}
+
+/**
+ * This helper function checks if the favourites field in the request body is valid.
+ * Favourites is always optional.
+ * @returns {ValidationChain}
+ */
+function _validateFavourites() {
+    return body('favourites', 'Favourites must be an non empty array').isArray({ min: 1 }).optional({ values: 'falsy' }).custom(async (favourites) => {
+        for (const id of favourites) {
+            if (!(await movies.findById(id))) return Promise.reject('Invalid movie ID in favourites.');
+        }
+        return true;
+    });
+}
+
+/**
+ * This helper function checks if the birthday field in the request body is a valid date.
+ * @param {String} bailLevel 
+ * @returns {ValidationChain}
+ */
+function _validateBirthdayFormat(bailLevel = 'request') {
+    return body('birthday', 'Birthday must be a date (YYYY-MM-DD)').custom(value => {
+        return !isNaN(Date.parse(value));
+    }).bail({level: bailLevel});
+}
 
 /**
  * @api {post} /directors Create a new director
@@ -228,47 +263,38 @@ app.get('/movies?:limit', (req, res) => {
 /**
  * @api {post} /movies Create a new movie
  */
-app.post('/movies', passport.authenticate('jwt', {session: false}), (req, res) => {
-    movies.findOne({ title: req.body.title })
+app.post('/movies', [
+    passport.authenticate('jwt', {session: false}),
+    _ifBodyFieldEmptyBail('title', 'The title is required'),
+    _ifBodyFieldEmptyBail('description', 'The description is required'),
+    _ifBodyFieldEmptyBail('genre', 'A genre ID is required'),
+    _ifBodyFieldEmptyBail('director', 'A director ID is required'),
+    _ifBodyFieldEmptyBail('imagePath', 'imagePath can\'t be empty').optional({values: 'falsy'}),
+    body('title', 'Movie already exists in the database.').custom(async title => {
+        if(await movies.findOne({ title })) return Promise.reject();
+        return true;
+    }).bail({level: 'request'}),
+    body('genre', 'Genre not found in database.').custom(async genreID => {
+        if(!(await genres.findById(genreID))) return Promise.reject();
+        return true;
+    }),
+    body('director', 'Director not found in database.').custom(async directorID => {
+        if(!(await directors.findById(directorID))) return Promise.reject();
+        return true;
+    })
+], (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
+    const data = matchedData(req);
+    movies.create({
+        title: data.title,
+        description: data.description,
+        genre: data.genre,
+        director: data.director,
+        imagePath: data.imagePath ? data.imagePath : null
+    })
         .then(movie => {
-            if (movie) {
-                return res.status(400).send(req.body.title + ' already exists.');
-            } else {
-                directors.findById(req.body.director)
-                    .then(director => {
-                        if (!director) {
-                            return res.status(404).send('Director not found.');
-                        } else {
-                            genres.findById(req.body.genre)
-                                .then(genre => {
-                                    if (!genre) {
-                                        return res.status(404).send('Genre not found.');
-                                    } else {
-                                        movies.create({
-                                            title: req.body.title,
-                                            description: req.body.description,
-                                            director: director,
-                                            genre: genre,
-                                            imagePath: req.body.imagePath
-                                        }).then(movie => {
-                                            res.status(201).json(movie);
-                                        }).catch(err => {
-                                            console.error(err);
-                                            res.status(500).send('Error: ' + err);
-                                        });
-                                    }
-                                })
-                                .catch(err => {
-                                    console.error(err);
-                                    res.status(500).send('Error: ' + err);
-                                });
-                        }
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        res.status(500).send('Error: ' + err);
-                    });
-            }
+            res.status(201).json(movie);
         })
         .catch(err => {
             console.error(err);
@@ -282,24 +308,17 @@ app.post('/movies', passport.authenticate('jwt', {session: false}), (req, res) =
 app.post('/users', [
     body('username', 'Username is required').isLength({min: 5}).escape().bail({level: 'request'}),
     body('username', 'Username contains non alphanumeric characters - not allowed.').isAlphanumeric().bail({level: 'request'}),
-    body('email', 'Email is required').notEmpty().bail({level: 'request'}),
+    _ifBodyFieldEmptyBail('email', 'Email is required'),
     body('email', 'Email does not appear to be valid').isEmail().normalizeEmail().bail({level: 'request'}),
-    body('password', 'Password is required').notEmpty().bail({level: 'request'}),
-    body('birthday', 'Birthday must be a date (YYYY-MM-DD)').optional({values: 'falsy'}).custom(value => { //The express-validators isDate() method throws a TypeError, if value is not a date string.
-        return !isNaN(Date.parse(value));
-    }).bail({level: 'request'}),
-    body('favourites', 'Favourites must be an non empty array').isArray({min: 1}).optional({values: 'falsy'}).custom(async favourites => {
-        for (const id of favourites) {
-            if (!(await movies.findById(id))) return Promise.reject('Invalid movie ID in favourites.');
-        }
-        return true;
-    })
+    _ifBodyFieldEmptyBail('password', 'Password is required'),
+    _validateBirthdayFormat().optional({values: 'falsy'}),
+    _validateFavourites()
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
     const data = matchedData(req);
     await users.findOne({ username: data.username})
-        .then(async (user) => {
+        .then(async (user) => { //This should be a validation middleware.
             if (user) {
                 return res.status(400).send(data.username + ' already exists.');
             } else {
@@ -375,22 +394,15 @@ app.patch('/users/:username', [
         body('username', 'Username must be at least 5 characters long,').isLength({min: 5}).escape().optional({values: 'falsy'}),
         body('username', 'Username contains non alphanumeric characters - not allowed.').isAlphanumeric().escape().optional({values: 'falsy'}),
         body('email', 'Email does not appear to be valid').isEmail().normalizeEmail().optional({values: 'falsy'}),
-        body('password', 'Password is required').optional({values: 'falsy'}),
-        body('birthday', 'Birthday must be a date (YYYY-MM-DD)').custom(value => { //The express-validators isDate() method throws a TypeError, if value is not a date string.
-            return !isNaN(Date.parse(value));
-        }).optional({values: 'falsy'}),
-        body('favourites', 'Favourites must be an non empty array').isArray({min: 1}).optional({values: 'falsy'}).custom(async favourites => {
-            for (const id of favourites) {
-                if (!(await movies.findById(id))) return Promise.reject('Invalid movie ID in favourites.');
-            }
-            return true;
-        })
+        _ifBodyFieldEmptyBail('password', 'Password can\'t be empty.', 'chain').optional({values: 'falsy'}),
+        _validateBirthdayFormat().optional({values: 'falsy'}),
+        _validateFavourites()
     ])
 ], (req, res) => {
     let errors = validationResult(req);
     if (!errors.isEmpty()) {
         errors = errors.array();
-        switch (errors[0].msg) {
+        switch (errors[0].msg) { //This is shit.
             case 'username_required':
                 res.status(422).end('Please provide a valid username.');
                 break;
