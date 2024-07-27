@@ -35,17 +35,33 @@ auth(app);
 require('./passport.js');
 
 /**
- * This helper function checks if a field in the request body is empty and bails out if it is empty.
+ * This helper function is a express-validator that checks if a field of a request exists in a collection of a MongoDB database.
+ * @param {*} request Where to look for the field in the request
+ * @param {String} field The name of the field to check
+ * @param {*} collection The collection to check the field against
+ * @param {String} errorMessage The error message to return if the field is not found in the collection
+ * @returns {ValidationChain}
+ */
+function _checkFieldInCollection(request, field, collection, errorMessage) {
+    return request(field, errorMessage).custom(async (id) => {
+        if (!(await collection.findById(id))) return Promise.reject();
+        return true;
+    });
+}
+
+/**
+ * This helper function is a express-validator that checks if a field in a request is empty and bails out if it is empty.
+ * @param {*} request Where to look for the field in the request
  * @param {String} field The field to check
  * @param {String} message The error message to return if the field is empty
  * @returns {ValidationChain}
  */
-function _ifBodyFieldEmptyBail(field, message, bailLevel = 'request') {
-    return body(field, message).notEmpty().bail({level: bailLevel});
+function _ifFieldEmptyBail(request, field, message, bailLevel = 'request') {
+    return request(field, message).notEmpty().bail({level: bailLevel});
 }
 
 /**
- * This helper function checks if the favourites field in the request body is valid.
+ * This helper function is a express-validator that checks if the favourites field in a requests body is valid.
  * Favourites is always optional.
  * @returns {ValidationChain}
  */
@@ -59,14 +75,16 @@ function _validateFavourites() {
 }
 
 /**
- * This helper function checks if the birthday field in the request body is a valid date.
- * @param {String} bailLevel 
+ * This helper function is a express-validator that checks if a field in a request is a valid date.
+ * @param {*} request Where to look for the field in the request
+ * @param {String} field The field to check 
+ * @param {String} errorMessage The error message to return if the field is not a valid date
  * @returns {ValidationChain}
  */
-function _validateBirthdayFormat(bailLevel = 'request') {
-    return body('birthday', 'Birthday must be a date (YYYY-MM-DD)').custom(value => {
+function _valiDate(request, field, errorMessage) { // This is a very funny name!
+    return request(field, errorMessage).custom(value => {
         return !isNaN(Date.parse(value));
-    }).bail({level: bailLevel});
+    });
 }
 
 /**
@@ -265,23 +283,17 @@ app.get('/movies?:limit', (req, res) => {
  */
 app.post('/movies', [
     passport.authenticate('jwt', {session: false}),
-    _ifBodyFieldEmptyBail('title', 'The title is required'),
-    _ifBodyFieldEmptyBail('description', 'The description is required'),
-    _ifBodyFieldEmptyBail('genre', 'A genre ID is required'),
-    _ifBodyFieldEmptyBail('director', 'A director ID is required'),
-    _ifBodyFieldEmptyBail('imagePath', 'imagePath can\'t be empty').optional({values: 'falsy'}),
+    _ifFieldEmptyBail(body, 'title', 'The title is required'),
+    _ifFieldEmptyBail(body, 'description', 'The description is required'),
+    _ifFieldEmptyBail(body, 'genre', 'A genre ID is required'),
+    _ifFieldEmptyBail(body, 'director', 'A director ID is required'),
+    _ifFieldEmptyBail(body, 'imagePath', 'imagePath can\'t be empty').optional({values: 'falsy'}),
     body('title', 'Movie already exists in the database.').custom(async title => {
         if(await movies.findOne({ title })) return Promise.reject();
         return true;
     }).bail({level: 'request'}),
-    body('genre', 'Genre not found in database.').custom(async genreID => {
-        if(!(await genres.findById(genreID))) return Promise.reject();
-        return true;
-    }),
-    body('director', 'Director not found in database.').custom(async directorID => {
-        if(!(await directors.findById(directorID))) return Promise.reject();
-        return true;
-    })
+    _checkFieldInCollection(body, 'genre', genres, 'Genre not found in database.').bail({level: 'request'}),
+    _checkFieldInCollection(body, 'director', directors, 'Director not found in database.').bail({level: 'request'})
 ], (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
@@ -308,10 +320,10 @@ app.post('/movies', [
 app.post('/users', [
     body('username', 'Username is required').isLength({min: 5}).escape().bail({level: 'request'}),
     body('username', 'Username contains non alphanumeric characters - not allowed.').isAlphanumeric().bail({level: 'request'}),
-    _ifBodyFieldEmptyBail('email', 'Email is required'),
+    _ifFieldEmptyBail(body, 'email', 'Email is required'),
     body('email', 'Email does not appear to be valid').isEmail().normalizeEmail().bail({level: 'request'}),
-    _ifBodyFieldEmptyBail('password', 'Password is required'),
-    _validateBirthdayFormat().optional({values: 'falsy'}),
+    _ifFieldEmptyBail(body, 'password', 'Password is required'),
+    _valiDate(body, 'birthday', 'Birthday is not a valid date.').bail({level: 'request'}).optional({values: 'falsy'}),
     _validateFavourites()
 ], async (req, res) => {
     const errors = validationResult(req);
@@ -394,8 +406,8 @@ app.patch('/users/:username', [
         body('username', 'Username must be at least 5 characters long,').isLength({min: 5}).escape().optional({values: 'falsy'}),
         body('username', 'Username contains non alphanumeric characters - not allowed.').isAlphanumeric().escape().optional({values: 'falsy'}),
         body('email', 'Email does not appear to be valid').isEmail().normalizeEmail().optional({values: 'falsy'}),
-        _ifBodyFieldEmptyBail('password', 'Password can\'t be empty.', 'chain').optional({values: 'falsy'}),
-        _validateBirthdayFormat().optional({values: 'falsy'}),
+        _ifFieldEmptyBail(body, 'password', 'Password can\'t be empty.').optional({values: 'falsy'}),
+        _valiDate(body, 'birthday', 'Birthday is not a vaild date').bail({level: 'request'}).optional({values: 'falsy'}),
         _validateFavourites()
     ])
 ], (req, res) => {
