@@ -424,7 +424,7 @@ app.patch('/users/:username', [
     } else {
         const data = matchedData(req);
         if((Object.keys(data).length === 1) && (data.username === req.user.username)) return res.status(400).send('No valid data provided.').end();
-        console.log(data);
+        if (data.password) data.password = users.hashPassword(data.password);
         users.findOneAndUpdate({ username: req.params.username }, data, {new: true}) //Do not use data.username here in case a super user wants to change the username of another user.
             .then(user => {
                 if (!user) {
