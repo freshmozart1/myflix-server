@@ -15,15 +15,10 @@ const express = require('express'),
 
 mongoose.connect(process.env.CONNECTION_URI);
 
-// const allowedOrigins = ['http://localhost:8080'];
-
-app.use(cors({
-    origin: (origin, callback) => {
-        if (!origin) return callback(null, true);
-        //if (allowedOrigins.indexOf(origin) === -1) return  callback(new Error('CORS doesn\'t allow access from origin ' + origin), false);
-        return callback(null, true);
-    }
-}));
+/**
+ * @todo Fix this. CORS should not allow access from everywhere.
+ */
+app.use(cors());
 app.use(morgan('common'));
 app.use(express.static(__dirname));
 app.use(express.urlencoded({
@@ -44,7 +39,7 @@ require('./passport.js');
  */
 function _checkFieldInCollection(request, field, collection, errorMessage) {
     return request(field, errorMessage).custom(async (id) => {
-        if (!(await collection.findById(id))) return Promise.reject();
+        if (!mongoose.Types.ObjectId.isValid(id) || !(await collection.findById(id))) return Promise.reject();
         return true;
     });
 }
@@ -63,12 +58,13 @@ function _ifFieldEmptyBail(request, field, message, bailLevel = 'request') {
 /**
  * This helper function is a express-validator that checks if the favourites field in a requests body is valid.
  * Favourites is always optional.
+ * @param {String} bailLevel The level to bail out of the validation chain
  * @returns {ValidationChain}
  */
-function _validateFavourites() {
-    return body('favourites', 'Favourites must be an non empty array').isArray({ min: 1 }).optional({ values: 'falsy' }).custom(async (favourites) => {
+function _validateFavourites(bailLevel = 'request') {
+    return body('favourites', 'Favourites must be an non empty array').isArray({ min: 1 }).bail({level: bailLevel}).optional({ values: 'falsy' }).custom(async (favourites) => {
         for (const id of favourites) {
-            if (!(await movies.findById(id))) return Promise.reject('Invalid movie ID in favourites.');
+            if (!mongoose.Types.ObjectId.isValid(id) || !(await movies.findById(id))) return Promise.reject('Invalid movie ID in favourites.');
         }
         return true;
     });
@@ -367,7 +363,7 @@ app.delete('/users/:username', [
     let errors = validationResult(req);
     if (!errors.isEmpty()) {
         errors = errors.array();
-        switch (errors[0].msg) {
+        switch (errors[0].msg) { //This is also shit.
             case 'username_required':
                 res.status(422).end('Please provide a valid username.');
                 break;
@@ -395,6 +391,7 @@ app.delete('/users/:username', [
 
 /**
  * @api {patch} /users/:username Update a user by username
+ * @todo hash the password
  */
 app.patch('/users/:username', [
     passport.authenticate('jwt', {session: false}),
