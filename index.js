@@ -5,6 +5,7 @@ const express = require('express'),
     passport = require('passport'),
     cors = require('cors'),
     {param, matchedData, validationResult, body, checkExact} = require('express-validator'),
+    { _validateUserFieldUnchanged, _validateIdInCollection, _ifFieldEmptyBail, _validateFavouritesAndBail, _valiDate, _checkBodyEmpty } = require('./helpers.js'),
     models = require('./models.js'),
     auth = require('./auth.js'),
     app = express(),
@@ -28,60 +29,6 @@ app.use(express.json());
 
 auth(app);
 require('./passport.js');
-
-/**
- * This helper function is a express-validator that checks if a field of a request exists in a collection of a MongoDB database.
- * @param {*} request Where to look for the field in the request
- * @param {String} field The name of the field to check
- * @param {*} collection The collection to check the field against
- * @param {String} errorMessage The error message to return if the field is not found in the collection
- * @returns {ValidationChain}
- */
-function _checkFieldInCollection(request, field, collection, errorMessage) {
-    return request(field, errorMessage).custom(async (id) => {
-        if (!mongoose.Types.ObjectId.isValid(id) || !(await collection.findById(id))) return Promise.reject();
-        return true;
-    });
-}
-
-/**
- * This helper function is a express-validator that checks if a field in a request is empty and bails out if it is empty.
- * @param {*} request Where to look for the field in the request
- * @param {String} field The field to check
- * @param {String} message The error message to return if the field is empty
- * @returns {ValidationChain}
- */
-function _ifFieldEmptyBail(request, field, message, bailLevel = 'request') {
-    return request(field, message).notEmpty().bail({level: bailLevel});
-}
-
-/**
- * This helper function is a express-validator that checks if the favourites field in a requests body is valid.
- * Favourites is always optional.
- * @param {String} bailLevel The level to bail out of the validation chain
- * @returns {ValidationChain}
- */
-function _validateFavourites(bailLevel = 'request') {
-    return body('favourites', 'Favourites must be an non empty array').isArray({ min: 1 }).bail({level: bailLevel}).optional({ values: 'falsy' }).custom(async (favourites) => {
-        for (const id of favourites) {
-            if (!mongoose.Types.ObjectId.isValid(id) || !(await movies.findById(id))) return Promise.reject('Invalid movie ID in favourites.');
-        }
-        return true;
-    });
-}
-
-/**
- * This helper function is a express-validator that checks if a field in a request is a valid date.
- * @param {*} request Where to look for the field in the request
- * @param {String} field The field to check 
- * @param {String} errorMessage The error message to return if the field is not a valid date
- * @returns {ValidationChain}
- */
-function _valiDate(request, field, errorMessage) { // This is a very funny name!
-    return request(field, errorMessage).custom(value => {
-        return !isNaN(Date.parse(value));
-    });
-}
 
 /**
  * @api {post} /directors Create a new director
@@ -288,8 +235,8 @@ app.post('/movies', [
         if(await movies.findOne({ title })) return Promise.reject();
         return true;
     }).bail({level: 'request'}),
-    _checkFieldInCollection(body, 'genre', genres, 'Genre not found in database.').bail({level: 'request'}),
-    _checkFieldInCollection(body, 'director', directors, 'Director not found in database.').bail({level: 'request'})
+    _validateIdInCollection(body, 'genre', genres, 'Genre not found in database.').bail({level: 'request'}),
+    _validateIdInCollection(body, 'director', directors, 'Director not found in database.').bail({level: 'request'})
 ], (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
@@ -320,7 +267,7 @@ app.post('/users', [
     body('email', 'Email does not appear to be valid').isEmail().normalizeEmail().bail({level: 'request'}),
     _ifFieldEmptyBail(body, 'password', 'Password is required'),
     _valiDate(body, 'birthday', 'Birthday is not a valid date.').bail({level: 'request'}).optional({values: 'falsy'}),
-    _validateFavourites()
+    _validateFavouritesAndBail()
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
@@ -391,52 +338,62 @@ app.delete('/users/:username', [
 
 /**
  * @api {patch} /users/:username Update a user by username
- * @todo hash the password
  */
 app.patch('/users/:username', [
     passport.authenticate('jwt', {session: false}),
-    param('username', 'username_required').isLength({min: 5}).escape().bail({level: 'request'}),
-    param('username', 'not_allowed').custom((value, {req}) => { //Change this to oneOf() when super users are implemented.
+    _checkBodyEmpty,
+    param('username', 'The username provided in the URL isn\'t valid.').custom(async username => {
+        if ((username.length < 5) ||!(await users.findOne({username: username}))) return Promise.reject();
+        return true;
+    }).bail({level: 'request'}),
+    param('username', 'You are not allowed to update this user!').custom((value, {req}) => { //Change this to oneOf() when super users are implemented.
         return value === req.user.username;
     }).bail({level: 'request'}),
-    checkExact([
-        body('username', 'Username must be at least 5 characters long,').isLength({min: 5}).escape().optional({values: 'falsy'}),
-        body('username', 'Username contains non alphanumeric characters - not allowed.').isAlphanumeric().escape().optional({values: 'falsy'}),
-        body('email', 'Email does not appear to be valid').isEmail().normalizeEmail().optional({values: 'falsy'}),
-        _ifFieldEmptyBail(body, 'password', 'Password can\'t be empty.').optional({values: 'falsy'}),
-        _valiDate(body, 'birthday', 'Birthday is not a vaild date').bail({level: 'request'}).optional({values: 'falsy'}),
-        _validateFavourites()
-    ])
+    _validateUserFieldUnchanged(body, 'username').bail({level: 'request'}).optional({values: 'falsy'}),
+    body('username', 'Username must be at least 5 characters long,').isLength({min: 5}).bail({level: 'request'}).escape().optional({values: 'falsy'}),
+    body('username', 'Username contains non alphanumeric characters - not allowed.').isAlphanumeric().bail({level: 'request'}).escape().optional({values: 'falsy'}),
+    _validateUserFieldUnchanged(body, 'email').bail({level: 'request'}).optional({values: 'falsy'}),
+    body('email', 'Email does not appear to be valid').isEmail().bail({level: 'request'}).normalizeEmail().optional({values: 'falsy'}),
+    _validateUserFieldUnchanged(body, 'password').bail({level: 'request'}).optional({values: 'falsy'}),
+    _validateUserFieldUnchanged(body, 'birthday').bail({level: 'request'}).optional({values: 'falsy'}),
+    _valiDate(body, 'birthday', 'Birthday is not a vaild date').bail({level: 'request'}).optional({values: 'falsy'}),
+    _validateFavouritesAndBail(),
+    _validateUserFieldUnchanged(body, 'favourites').bail({level: 'request'}).optional({values: 'falsy'}),
+    checkExact([], {message: 'Request body contains unknown fields.'})
+], async (req, res) => {
+    try {
+        validationResult(req).throw();
+        const data = matchedData(req);
+        if (data.password) data.password = users.hashPassword(data.password);
+        const result = await users.updateOne({ username: req.params.username }, data);
+        console.log(result.modifiedCount);
+        if (result.nModified === 0 ) return res.status(404).end(req.params.username + ' was not found.');
+        res.status(200).end('Successfully updated user ' + req.params.username);
+    } catch (e) {
+        if (e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
+        res.status(500).end('An error occurred.');
+    }
+});
+
+app.post('/test', [
+    body().custom(value => {
+        console.log(value);
+        if ((Object.keys(value).length === 1) && (value.test === 'freshmozart')) return Promise.reject('No valid data provided.');
+        return true;
+    })
 ], (req, res) => {
-    let errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        errors = errors.array();
-        switch (errors[0].msg) { //This is shit.
-            case 'username_required':
-                res.status(422).end('Please provide a valid username.');
-                break;
-            case 'not_allowed':
-                res.status(403).end('You are not allowed to update this user!');
+    try {
+        validationResult(req).throw();
+        res.status(200).send('Success');
+    } catch (e) {
+        switch (e.type) {
+            case 'field':
+                res.status(422).json({ errors: e.errors });
                 break;
             default:
-                res.status(422).json({ errors }).end();
+                console.error(e.errors);
+                res.status(500).send('Error: ' + e);
         }
-    } else {
-        const data = matchedData(req);
-        if((Object.keys(data).length === 1) && (data.username === req.user.username)) return res.status(400).send('No valid data provided.').end();
-        if (data.password) data.password = users.hashPassword(data.password);
-        users.findOneAndUpdate({ username: req.params.username }, data, {new: true}) //Do not use data.username here in case a super user wants to change the username of another user.
-            .then(user => {
-                if (!user) {
-                    return res.status(404).send(req.params.username + ' was not found.');
-                } else {
-                    return res.status(200).send('Successfully updated user ' + req.params.username);
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                return res.status(500).send('Error: ' + err);
-            });
     }
 });
 
