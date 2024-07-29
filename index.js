@@ -365,9 +365,7 @@ app.patch('/users/:username', [
         validationResult(req).throw();
         const data = matchedData(req);
         if (data.password) data.password = users.hashPassword(data.password);
-        const result = await users.updateOne({ username: req.params.username }, data);
-        console.log(result.modifiedCount);
-        if (result.nModified === 0 ) return res.status(404).end(req.params.username + ' was not found.');
+        if ((await users.updateOne({ username: req.params.username }, data)).modifiedCount === 0 ) return res.status(404).end(req.params.username + ' was not found.');
         res.status(200).end('Successfully updated user ' + req.params.username);
     } catch (e) {
         if (e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
