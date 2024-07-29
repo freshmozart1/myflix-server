@@ -368,7 +368,7 @@ app.patch('/users/:username', [
         if ((await users.updateOne({ username: req.params.username }, data)).modifiedCount === 0 ) return res.status(404).end(req.params.username + ' was not found.');
         res.status(200).end('Successfully updated user ' + req.params.username);
     } catch (e) {
-        if (e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
+        if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
         res.status(500).end('An error occurred.');
     }
 });
