@@ -321,19 +321,18 @@ app.delete('/users/:username', [
                 res.status(422).json({ errors });
         }
     } else {
-        await users.deleteOne({ username: req.params.username })
-        .then(result => {
-            if (result.deletedCount === 0) {
-                return res.status(404).send(req.params.username + ' was not found.');
-            } else {
-                res.status(200).send(req.params.username + ' was deleted.');
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            res.status(500).send('Error: ' + err);
-        });
-    }
+    await users.deleteOne({ username: req.params.username })
+    .then(result => {
+        if (result.deletedCount === 0) {
+            return res.status(404).send(req.params.username + ' was not found.');
+        } else {
+            res.status(200).send(req.params.username + ' was deleted.');
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        res.status(500).send('Error: ' + err);
+    });
 });
 
 /**
@@ -342,9 +341,13 @@ app.delete('/users/:username', [
 app.patch('/users/:username', [
     passport.authenticate('jwt', {session: false}),
     _checkBodyEmpty,
-    param('username', 'The username provided in the URL isn\'t valid.').custom(async username => {
-        if ((username.length < 5) ||!(await users.findOne({username: username}))) return Promise.reject();
-        return true;
+    param('username').custom(async username => {
+        if (username.length < 5) return Promise.reject('The username provided in the URL isn\'t valid.');
+        try {
+            if (!(await users.findOne({ username }))) return Promise.reject('The username provided in the URL isn\'t valid.');
+        } catch (e) {
+            return Promise.reject('Database error: ' + e);
+        }
     }).bail({level: 'request'}),
     param('username', 'You are not allowed to update this user!').custom((value, {req}) => { //Change this to oneOf() when super users are implemented.
         return value === req.user.username;

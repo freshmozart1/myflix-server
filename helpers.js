@@ -60,7 +60,12 @@ function _ifFieldEmptyBail(request, field, message, bailLevel = 'request') {
 function _validateFavouritesAndBail(bailLevel = 'request') {
     return body('favourites', 'Favourites must be an non empty array').isArray({ min: 1 }).bail({level: bailLevel}).optional({ values: 'falsy' }).custom(async (favourites) => {
         for (const id of favourites) {
-            if (!mongoose.Types.ObjectId.isValid(id) || !(await movies.findById(id))) return Promise.reject('Invalid movie ID in favourites.');
+            if (!mongoose.Types.ObjectId.isValid(id)) return Promise.reject('Invalid movie ID in favourites.');
+            try {
+                if (!(await movies.findById(id))) return Promise.reject('Invalid movie ID in favourites.');
+            } catch (e) {
+                return Promise.reject('Database error + ' + e);
+            }
         }
         return true;
     });
