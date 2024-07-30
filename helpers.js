@@ -68,7 +68,7 @@ function _validateFavouritesAndBail(bailLevel = 'request') {
             }
         }
         return true;
-    });
+    }).bail({level: bailLevel});
 }
 
 /**
