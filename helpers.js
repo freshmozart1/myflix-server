@@ -14,7 +14,6 @@ function _validateUserFieldUnchanged(request, field) {
     return request(field, field + ' is the same as the current ' + field + '.').custom((fieldValue, { req }) => {
         if (field === 'password' && req.user.validatePassword(fieldValue)) return false;
         if (field === 'favourites') {
-            console.log(req.user.favourites);
             if (fieldValue.length !== req.user.favourites.length) return true;
             for (let i = 0; i < fieldValue.length; i++) {
                 if (fieldValue[i] !== req.user.favourites[i].toHexString()) return true;

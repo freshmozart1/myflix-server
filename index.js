@@ -316,32 +316,6 @@ app.delete('/users/:username', [
         if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
         return res.status(500).end('Database error: ' + e);
     }
-    /*let errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        errors = errors.array();
-        switch (errors[0].msg) { //This is also shit.
-            case 'username_required':
-                res.status(422).end('Please provide a valid username.');
-                break;
-            case 'not_allowed':
-                res.status(403).end('You are not allowed to delete this user!');
-                break;
-            default:
-                res.status(422).json({ errors });
-        }
-    }
-    await users.deleteOne({ username: req.params.username })
-    .then(result => {
-        if (result.deletedCount === 0) {
-            return res.status(404).send(req.params.username + ' was not found.');
-        } else {
-            res.status(200).send(req.params.username + ' was deleted.');
-        }
-    })
-    .catch(err => {
-        console.error(err);
-        res.status(500).send('Error: ' + err);
-    });*/
 });
 
 /**
@@ -379,7 +353,6 @@ app.patch('/users/:username', [
 
 app.post('/test', [
     body().custom(value => {
-        console.log(value);
         if ((Object.keys(value).length === 1) && (value.test === 'freshmozart')) return Promise.reject('No valid data provided.');
         return true;
     })
