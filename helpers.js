@@ -1,7 +1,8 @@
 const mongoose = require('mongoose'),
-    { body } = require('express-validator'),
+    { body, param } = require('express-validator'),
     models = require('./models'),
-    movies = models.movie;
+    movies = models.movie,
+    users = models.user;
 
 /**
  * This helper function is a express-validator used only by the PATCH /users/:username route to check if a value in the request body is the same as the current value fo a user.
@@ -98,11 +99,33 @@ function _checkBodyEmpty(req, res, next) {
     next();
 }
 
+/**
+ * This helper function is a express-validator that checks if a username is valid.
+ * @param {*} request Where to look for the field in the request.
+ * @param {String} bailLevel The level to bail out of the validation chain.
+ * @returns {ValidationChain}
+ */
+function _validateUsername(request, bailLevel = 'request') {
+    return request('username').custom(async (username) => {
+        if (username.length < 5) return Promise.reject('The username must be at least 5 characters long.');
+        if (!username.match(/^[a-zA-Z0-9]+$/)) return Promise.reject('The username contains non alphanumeric characters - not allowed.');
+        if (request === param) {
+            try {
+                if (!(await users.findOne({ username }))) return Promise.reject('The username provided in the URL does not exist in the database.');
+            } catch (e) {
+                return Promise.reject('Database error: ' + e);
+            }
+        }
+        return true;
+    }).bail({ level: bailLevel });
+}
+
 module.exports = {
     _validateUserFieldUnchanged,
     _validateIdInCollection,
     _ifFieldEmptyBail,
     _validateFavouritesAndBail,
     _valiDate,
-    _checkBodyEmpty
+    _checkBodyEmpty,
+    _validateUsername
 };

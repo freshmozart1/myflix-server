@@ -5,7 +5,7 @@ const express = require('express'),
     passport = require('passport'),
     cors = require('cors'),
     {param, matchedData, validationResult, body, checkExact} = require('express-validator'),
-    { _validateUserFieldUnchanged, _validateIdInCollection, _ifFieldEmptyBail, _validateFavouritesAndBail, _valiDate, _checkBodyEmpty } = require('./helpers.js'),
+    { _validateUserFieldUnchanged, _validateIdInCollection, _ifFieldEmptyBail, _validateFavouritesAndBail, _valiDate, _checkBodyEmpty, _validateUsername } = require('./helpers.js'),
     models = require('./models.js'),
     auth = require('./auth.js'),
     app = express(),
@@ -302,12 +302,21 @@ app.post('/users', [
  */
 app.delete('/users/:username', [
     passport.authenticate('jwt', {session: false}),
-    param('username', 'username_required').isLength({min: 5}).escape().bail({level: 'request'}),
+    _validateUsername(param),
     param('username', 'not_allowed').custom((value, {req}) => {
         return value === req.user.username;
     })
 ], async (req, res) => {
-    let errors = validationResult(req);
+    try {
+        validationResult(req).throw();
+        const data = matchedData(req);
+        if((await users.deleteOne({username: data.username})).deletedCount === 0) return res.status(404).end(data.username + ' wasn\'t found.');
+        res.status(200).end(req.params.username + ' was deleted.');
+    } catch (e) {
+        if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
+        return res.status(500).end('Database error: ' + e);
+    }
+    /*let errors = validationResult(req);
     if (!errors.isEmpty()) {
         errors = errors.array();
         switch (errors[0].msg) { //This is also shit.
@@ -320,7 +329,7 @@ app.delete('/users/:username', [
             default:
                 res.status(422).json({ errors });
         }
-    } else {
+    }
     await users.deleteOne({ username: req.params.username })
     .then(result => {
         if (result.deletedCount === 0) {
@@ -332,7 +341,7 @@ app.delete('/users/:username', [
     .catch(err => {
         console.error(err);
         res.status(500).send('Error: ' + err);
-    });
+    });*/
 });
 
 /**
@@ -341,20 +350,12 @@ app.delete('/users/:username', [
 app.patch('/users/:username', [
     passport.authenticate('jwt', {session: false}),
     _checkBodyEmpty,
-    param('username').custom(async username => {
-        if (username.length < 5) return Promise.reject('The username provided in the URL isn\'t valid.');
-        try {
-            if (!(await users.findOne({ username }))) return Promise.reject('The username provided in the URL isn\'t valid.');
-        } catch (e) {
-            return Promise.reject('Database error: ' + e);
-        }
-    }).bail({level: 'request'}),
+    _validateUsername(param),
     param('username', 'You are not allowed to update this user!').custom((value, {req}) => { //Change this to oneOf() when super users are implemented.
         return value === req.user.username;
     }).bail({level: 'request'}),
     _validateUserFieldUnchanged(body, 'username').bail({level: 'request'}).optional({values: 'falsy'}),
-    body('username', 'Username must be at least 5 characters long,').isLength({min: 5}).bail({level: 'request'}).escape().optional({values: 'falsy'}),
-    body('username', 'Username contains non alphanumeric characters - not allowed.').isAlphanumeric().bail({level: 'request'}).escape().optional({values: 'falsy'}),
+    _validateUsername(body).optional({values: 'falsy'}),
     _validateUserFieldUnchanged(body, 'email').bail({level: 'request'}).optional({values: 'falsy'}),
     body('email', 'Email does not appear to be valid').isEmail().bail({level: 'request'}).normalizeEmail().optional({values: 'falsy'}),
     _validateUserFieldUnchanged(body, 'password').bail({level: 'request'}).optional({values: 'falsy'}),
@@ -372,7 +373,7 @@ app.patch('/users/:username', [
         res.status(200).end('Successfully updated user ' + req.params.username);
     } catch (e) {
         if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
-        res.status(500).end('An error occurred.');
+        res.status(500).end('Database error: ' + e);
     }
 });
 
