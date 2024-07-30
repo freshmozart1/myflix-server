@@ -261,40 +261,37 @@ app.post('/movies', [
  * @api {post} /users Create a new user
  */
 app.post('/users', [
-    body('username', 'Username is required').isLength({min: 5}).escape().bail({level: 'request'}),
-    body('username', 'Username contains non alphanumeric characters - not allowed.').isAlphanumeric().bail({level: 'request'}),
+    _checkBodyEmpty,
+    _validateUsername(body),
+    body('username', 'Username already exists').custom(async username => {
+        try {
+            if (await users.exists({ username })) return Promise.reject();
+        } catch (e) {
+            return Promise.reject('Database error: ' + e);
+        }
+        return true;
+    }),
     _ifFieldEmptyBail(body, 'email', 'Email is required'),
     body('email', 'Email does not appear to be valid').isEmail().normalizeEmail().bail({level: 'request'}),
     _ifFieldEmptyBail(body, 'password', 'Password is required'),
     _valiDate(body, 'birthday', 'Birthday is not a valid date.').bail({level: 'request'}).optional({values: 'falsy'}),
     _validateFavouritesAndBail()
 ], async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
-    const data = matchedData(req);
-    await users.findOne({ username: data.username})
-        .then(async (user) => { //This should be a validation middleware.
-            if (user) {
-                return res.status(400).send(data.username + ' already exists.');
-            } else {
-                users.create({
-                    username: data.username,
-                    password: users.hashPassword(data.password),
-                    email: data.email,
-                    birthday: data.birthday ? data.birthday : null,
-                    favourites: data.favourites ? data.favourites : null
-                }).then((user) => {
-                    res.status(201).json(user);
-                }).catch((err) => {
-                    console.error(err);
-                    res.status(500).send('Error: ' + err);
-                });
-            }
-        })
-        .catch((err) => {
-            console.error(err);
-            res.status(500).send('Error: ' + err);
+    try {
+        validationResult(req).throw();
+        const data = matchedData(req);
+        await users.create({
+            username: data.username,
+            password: users.hashPassword(data.password),
+            email: data.email,
+            birthday: data.birthday ? data.birthday : null,
+            favourites: data.favourites ? data.favourites : null
         });
+        res.status(201).end('User ' + data.username + ' was created.');
+    } catch (e) {
+        if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
+        return res.status(500).end('Database error: ' + e);
+    }
 });
 
 /**
