@@ -1,5 +1,6 @@
 const mongoose = require('mongoose'),
     { body, param } = require('express-validator'),
+    { parseISO, isValid } = require('date-fns'),
     models = require('./models'),
     movies = models.movie,
     users = models.user;
@@ -80,7 +81,7 @@ function _validateFavouritesAndBail(bailLevel = 'request') {
  */
 function _valiDate(request, field, errorMessage) { // This is a very funny name!
     return request(field, errorMessage).custom(value => {
-        return !isNaN(Date.parse(value));
+        return isValid(parseISO(value));
     });
 }
 
