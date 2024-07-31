@@ -1,5 +1,3 @@
-const { id } = require('date-fns/locale');
-
 const mongoose = require('mongoose'),
     { body, param } = require('express-validator'),
     { parseISO, isValid } = require('date-fns'),
@@ -34,10 +32,14 @@ function _validateFieldUnchanged(request, field) {
 function _validateIdInCollection(request, field, collection, errorMessage) {
     return request(field).custom(async fieldValue => {
         try {
-            if (Array.isArray(fieldValue)) for (const id of fieldValue) {
-                if (!mongoose.Types.ObjectId.isValid(id) || !(await collection.findById(id))) return Promise.reject(errorMessage);
+            const isValidId = async id => mongoose.Types.ObjectId.isValid(id) && await collection.findById(id);
+            if (Array.isArray(fieldValue)) {
+                for (const id of fieldValue) {
+                    if (!await isValidId(id)) return Promise.reject(errorMessage);
+                }
+            } else {
+                if (!await isValidId(fieldValue)) return Promise.reject(errorMessage);
             }
-            if (!mongoose.Types.ObjectId.isValid(fieldValue) || !(await collection.findById(id))) return Promise.reject(errorMessage);
             return true;
         } catch (e) {
             return Promise.reject('Database error: ' + e);
