@@ -6,7 +6,7 @@ const express = require('express'),
     cors = require('cors'),
     {param, matchedData, validationResult, body, checkExact} = require('express-validator'),
     {
-        _validateUserFieldUnchanged,
+        _validateFieldUnchanged,
         _validateIdInCollection,
         _valiDate,
         _checkBodyEmpty,
@@ -325,14 +325,14 @@ app.patch('/users/:username', [
     param('username', 'You are not allowed to update this user!').custom((value, {req}) => { //Change this to oneOf() when super users are implemented.
         return value === req.user.username;
     }).bail({level: 'request'}),
-    _validateUserFieldUnchanged(body, 'username').bail({level: 'request'}).optional({values: 'falsy'}),
+    _validateFieldUnchanged(body, 'username').bail({level: 'request'}).optional({values: 'falsy'}),
     _validateUsername(body).bail({ level: 'request' }).optional({values: 'falsy'}),
-    _validateUserFieldUnchanged(body, 'email').bail({level: 'request'}).optional({values: 'falsy'}),
+    _validateFieldUnchanged(body, 'email').bail({level: 'request'}).optional({values: 'falsy'}),
     body('email', 'Email does not appear to be valid').isEmail().bail({level: 'request'}).normalizeEmail().optional({values: 'falsy'}),
-    _validateUserFieldUnchanged(body, 'password').bail({level: 'request'}).optional({values: 'falsy'}),
-    _validateUserFieldUnchanged(body, 'birthday').bail({level: 'request'}).optional({values: 'falsy'}),
+    _validateFieldUnchanged(body, 'password').bail({level: 'request'}).optional({values: 'falsy'}),
+    _validateFieldUnchanged(body, 'birthday').bail({level: 'request'}).optional({values: 'falsy'}),
     _valiDate(body, 'birthday', 'Birthday is not a vaild date').bail({level: 'request'}).optional({values: 'falsy'}),
-    _validateUserFieldUnchanged(body, 'favourites').bail({level: 'request'}).optional({values: 'falsy'}),
+    _validateFieldUnchanged(body, 'favourites').bail({level: 'request'}).optional({values: 'falsy'}),
     _validateIdInCollection(body, 'favourites', movies, 'Invalid movie ID in favourites.').bail({level: 'request'}).optional({values: 'falsy'}),
     checkExact([], {message: 'Request body contains unknown fields.'})
 ], async (req, res) => {

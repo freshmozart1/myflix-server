@@ -8,28 +8,23 @@ const mongoose = require('mongoose'),
     users = models.user;
 
 /**
- * This helper function is a express-validator used only by the PATCH /users/:username route to check if a value in the request body is the same as the current value fo a user.
+ * This helper function is a express-validator that checks if a field of a request is the same as the current data stored for a user.
  * @param {*} request Where to look for the field in the request
  * @param {String} field The field to check
  * @returns {ValidationChain}
  */
-function _validateUserFieldUnchanged(request, field) {
+function _validateFieldUnchanged(request, field) {
     return request(field, field + ' is the same as the current ' + field + '.').custom((fieldValue, { req }) => {
-        if (field === 'password' && req.user.validatePassword(fieldValue)) return false;
+        if (field === 'password') return !req.user.validatePassword(fieldValue);
         if (field === 'favourites') {
-            if (fieldValue.length !== req.user.favourites.length) return true;
-            for (let i = 0; i < fieldValue.length; i++) {
-                if (fieldValue[i] !== req.user.favourites[i].toHexString()) return true;
-            }
-            return false;
+            return fieldValue.length !== req.user.favourites.length || fieldValue.some((id, i) => id !== req.user.favourites[i].toHexString());
         }
-        if (fieldValue === req.user[field]) return false;
-        return true;
+        return fieldValue !== req.user[field];
     });
 }
 
 /**
- * This helper function is a express-validator that checks if a field of a request contains ids that exist in a collection.
+ * This helper function is a express-validator that checks if a field of a request contains ObjectIds that exist in a collection.
  * @param {*} request Where to look for the field in the request
  * @param {String} field The name of the field to check
  * @param {*} collection The collection to check the field against
@@ -123,7 +118,7 @@ function _validateMovieTitle(request) {
 }
 
 module.exports = {
-    _validateUserFieldUnchanged,
+    _validateFieldUnchanged,
     _validateIdInCollection,
     _valiDate,
     _checkBodyEmpty,
