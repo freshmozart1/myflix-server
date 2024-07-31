@@ -110,21 +110,14 @@ function _validateUsername(request) {
  */
 function _validateMovieTitle(request) {
     return request('title').custom(async (title) => {
-        if (request === body )
-        {
-            try {
-                if (await movies.exists({ title })) return Promise.reject('A movie with the title \'' + title + '\' already exists in the database.');
-            } catch (e) {
-                return Promise.reject('Database error: ' + e);
-            }
-        } else if (request === param) {
-            try {
-                if (!(await movies.exists({ title }))) return Promise.reject('A movie with the title \'' + title + '\' does not exist in the database.');
-            } catch (e) {
-                return Promise.reject('Database error: ' + e);
-            }
+        try {
+            const movie = await movies.exists({ title });
+            if ((request === body) && movie) return Promise.reject('A movie with the title \'' + title + '\' already exists in the database.');
+            if ((request === param) && !movie) return Promise.reject('A movie with the title \'' + title + '\' does not exist in the database.');
+            return true;
+        } catch (e) {
+            return Promise.reject('Database error: ' + e);
         }
-        return true;
     });
 }
 
