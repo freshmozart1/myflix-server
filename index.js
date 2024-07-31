@@ -226,35 +226,38 @@ app.get('/movies?:limit', (req, res) => {
  */
 app.post('/movies', [
     passport.authenticate('jwt', {session: false}),
+    _checkBodyEmpty,
     _ifFieldEmptyBail(body, 'title', 'The title is required'),
     _ifFieldEmptyBail(body, 'description', 'The description is required'),
     _ifFieldEmptyBail(body, 'genre', 'A genre ID is required'),
     _ifFieldEmptyBail(body, 'director', 'A director ID is required'),
     _ifFieldEmptyBail(body, 'imagePath', 'imagePath can\'t be empty').optional({values: 'falsy'}),
-    body('title', 'Movie already exists in the database.').custom(async title => {
-        if(await movies.findOne({ title })) return Promise.reject();
-        return true;
+    body('title').custom(async title => {
+        try {
+            if (await movies.exists({title})) return Promise.reject('Movie already exists in the database.');
+        } catch (e) {
+            return Promise.reject('Database error: ' + e);
+        }
+        return Promise.resolve();
     }).bail({level: 'request'}),
     _validateIdInCollection(body, 'genre', genres, 'Genre not found in database.').bail({level: 'request'}),
     _validateIdInCollection(body, 'director', directors, 'Director not found in database.').bail({level: 'request'})
-], (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
-    const data = matchedData(req);
-    movies.create({
-        title: data.title,
-        description: data.description,
-        genre: data.genre,
-        director: data.director,
-        imagePath: data.imagePath ? data.imagePath : null
-    })
-        .then(movie => {
-            res.status(201).json(movie);
-        })
-        .catch(err => {
-            console.error(err);
-            res.status(500).send('Error: ' + err);
+], async (req, res) => {
+    try {
+        validationResult(req).throw();
+        const data = matchedData(req);
+        await movies.create({
+            title: data.title,
+            description: data.description,
+            genre: data.genre,
+            director: data.director,
+            imagePath: data.imagePath ? data.imagePath : null
         });
+        res.status(201).end('Movie ' + data.title + ' was created.');
+    } catch (e) {
+        if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
+        return res.status(500).end('Database error: ' + e);
+    }
 });
 
 /**
