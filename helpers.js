@@ -79,6 +79,10 @@ function _checkBodyEmpty(req, res, next) {
 
 /**
  * This helper function is a express-validator that checks if a username is valid.
+ * If the request parameter is the body section of a request, it returns an error message
+ * if the username exists in the database. If the request parameter is the parameter
+ * section of a request, it returns an error message if the username does not exist
+ * in the database.
  * @param {*} request Where to look for the field in the request.
  * @returns {ValidationChain}
  */
@@ -86,25 +90,22 @@ function _validateUsername(request) {
     return request('username').custom(async (username) => {
         if (username.length < 5) return Promise.reject('The username must be at least 5 characters long.');
         if (!username.match(/^[a-zA-Z0-9]+$/)) return Promise.reject('The username contains non alphanumeric characters - not allowed.');
-        if (request === param) {
-            try {
-                if (!(await users.exists({ username }))) return Promise.reject('The username provided in the URL does not exist in the database.');
-            } catch (e) {
-                return Promise.reject('Database error: ' + e);
-            }
-        } else if (request === body) {
-            try {
-                if (await users.exists({ username })) return Promise.reject('The username already exists in the database.');
-            } catch (e) {
-                return Promise.reject('Database error: ' + e);
-            }
+        try {
+            const user = await users.exists({ username });
+            if ((request === body) && user) return Promise.reject('The username \'' + username + '\' already exists in the database.');
+            if ((request === param) && !user) return Promise.reject('The username \'' + username + '\' does not exist in the database.');
+        } catch (e) {
+            return Promise.reject('Database error: ' + e);
         }
         return true;
     });
 }
 
 /**
- * This helper function is a express-validator that checks if a movie title is valid.
+ * This helper function is a express-validator. If the request parameter is the body section
+ * of a request, it checks if a movie exists in the database and if it does,
+ * it returns an error message. If the request parameter is the parameter section of a
+ * request, it checks if a movie exists in the database and if it does not, it returns an error message.
  * @param {*} request Where to look for the field in the request.
  * @returns {ValidationChain}
  */
@@ -112,8 +113,8 @@ function _validateMovieTitle(request) {
     return request('title').custom(async (title) => {
         try {
             const movie = await movies.exists({ title });
-            if ((request === body) && movie) return Promise.reject('A movie with the title \'' + title + '\' already exists in the database.');
-            if ((request === param) && !movie) return Promise.reject('A movie with the title \'' + title + '\' does not exist in the database.');
+            if ((request === body) && movie) return Promise.reject('The movie \'' + title + '\' already exists in the database.');
+            if ((request === param) && !movie) return Promise.reject('The movie \'' + title + '\' does not exist in the database.');
             return true;
         } catch (e) {
             return Promise.reject('Database error: ' + e);
