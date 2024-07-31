@@ -266,14 +266,6 @@ app.post('/movies', [
 app.post('/users', [
     _checkBodyEmpty,
     _validateUsername(body),
-    body('username').custom(async username => {
-        try {
-            if (await users.exists({ username })) return Promise.reject('Username already exists.');
-        } catch (e) {
-            return Promise.reject('Database error: ' + e);
-        }
-        return Promise.resolve();
-    }).bail({level: 'request'}),
     _ifFieldEmptyBail(body, 'email', 'Email is required'),
     body('email', 'Email does not appear to be valid').isEmail().normalizeEmail().bail({level: 'request'}),
     _ifFieldEmptyBail(body, 'password', 'Password is required'),

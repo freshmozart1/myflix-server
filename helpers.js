@@ -111,7 +111,13 @@ function _validateUsername(request, bailLevel = 'request') {
         if (!username.match(/^[a-zA-Z0-9]+$/)) return Promise.reject('The username contains non alphanumeric characters - not allowed.');
         if (request === param) {
             try {
-                if (!(await users.findOne({ username }))) return Promise.reject('The username provided in the URL does not exist in the database.');
+                if (!(await users.exists({ username }))) return Promise.reject('The username provided in the URL does not exist in the database.');
+            } catch (e) {
+                return Promise.reject('Database error: ' + e);
+            }
+        } else if (request === body) {
+            try {
+                if (await users.exists({ username })) return Promise.reject('The username already exists in the database.');
             } catch (e) {
                 return Promise.reject('Database error: ' + e);
             }
