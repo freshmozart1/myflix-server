@@ -1,3 +1,5 @@
+const { id } = require('date-fns/locale');
+
 const mongoose = require('mongoose'),
     { body, param } = require('express-validator'),
     { parseISO, isValid } = require('date-fns'),
@@ -27,7 +29,7 @@ function _validateUserFieldUnchanged(request, field) {
 }
 
 /**
- * This helper function is a express-validator that checks if a field of a request exists as an ID in a collection of a MongoDB database.
+ * This helper function is a express-validator that checks if a field of a request contains ids that exist in a collection.
  * @param {*} request Where to look for the field in the request
  * @param {String} field The name of the field to check
  * @param {*} collection The collection to check the field against
@@ -35,41 +37,17 @@ function _validateUserFieldUnchanged(request, field) {
  * @returns {ValidationChain}
  */
 function _validateIdInCollection(request, field, collection, errorMessage) {
-    return request(field, errorMessage).custom(async (id) => {
-        if (!mongoose.Types.ObjectId.isValid(id) || !(await collection.findById(id))) return Promise.reject();
-        return true;
-    });
-}
-
-/**
- * This helper function is a express-validator that checks if a field in a request is empty and bails out if it is empty.
- * @param {*} request Where to look for the field in the request
- * @param {String} field The field to check
- * @param {String} message The error message to return if the field is empty
- * @returns {ValidationChain}
- */
-function _ifFieldEmptyBail(request, field, message, bailLevel = 'request') {
-    return request(field, message).notEmpty().bail({level: bailLevel});
-}
-
-/**
- * This helper function is a express-validator that checks if the favourites field in a requests body is valid.
- * Favourites is always optional.
- * @param {String} bailLevel The level to bail out of the validation chain
- * @returns {ValidationChain}
- */
-function _validateFavouritesAndBail(bailLevel = 'request') {
-    return body('favourites', 'Favourites must be an non empty array').isArray({ min: 1 }).bail({level: bailLevel}).optional({ values: 'falsy' }).custom(async (favourites) => {
-        for (const id of favourites) {
-            if (!mongoose.Types.ObjectId.isValid(id)) return Promise.reject('Invalid movie ID in favourites.');
-            try {
-                if (!(await movies.findById(id))) return Promise.reject('Invalid movie ID in favourites.');
-            } catch (e) {
-                return Promise.reject('Database error + ' + e);
+    return request(field).custom(async fieldValue => {
+        try {
+            if (Array.isArray(fieldValue)) for (const id of fieldValue) {
+                if (!mongoose.Types.ObjectId.isValid(id) || !(await collection.findById(id))) return Promise.reject(errorMessage);
             }
+            if (!mongoose.Types.ObjectId.isValid(fieldValue) || !(await collection.findById(id))) return Promise.reject(errorMessage);
+            return true;
+        } catch (e) {
+            return Promise.reject('Database error: ' + e);
         }
-        return true;
-    }).bail({level: bailLevel});
+    });
 }
 
 /**
@@ -102,10 +80,9 @@ function _checkBodyEmpty(req, res, next) {
 /**
  * This helper function is a express-validator that checks if a username is valid.
  * @param {*} request Where to look for the field in the request.
- * @param {String} bailLevel The level to bail out of the validation chain.
  * @returns {ValidationChain}
  */
-function _validateUsername(request, bailLevel = 'request') {
+function _validateUsername(request) {
     return request('username').custom(async (username) => {
         if (username.length < 5) return Promise.reject('The username must be at least 5 characters long.');
         if (!username.match(/^[a-zA-Z0-9]+$/)) return Promise.reject('The username contains non alphanumeric characters - not allowed.');
@@ -123,16 +100,15 @@ function _validateUsername(request, bailLevel = 'request') {
             }
         }
         return true;
-    }).bail({ level: bailLevel });
+    });
 }
 
 /**
  * This helper function is a express-validator that checks if a movie title is valid.
  * @param {*} request Where to look for the field in the request.
- * @param {*} bailLevel The level to bail out of the validation chain.
  * @returns {ValidationChain}
  */
-function _validateMovieTitle(request, bailLevel = 'request') {
+function _validateMovieTitle(request) {
     return request('title').custom(async (title) => {
         if (request === body )
         {
@@ -149,14 +125,12 @@ function _validateMovieTitle(request, bailLevel = 'request') {
             }
         }
         return true;
-    }).bail({ level: bailLevel });
+    });
 }
 
 module.exports = {
     _validateUserFieldUnchanged,
     _validateIdInCollection,
-    _ifFieldEmptyBail,
-    _validateFavouritesAndBail,
     _valiDate,
     _checkBodyEmpty,
     _validateUsername,

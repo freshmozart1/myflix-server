@@ -7,8 +7,7 @@ const express = require('express'),
     {param, matchedData, validationResult, body, checkExact} = require('express-validator'),
     {
         _validateUserFieldUnchanged,
-        _validateIdInCollection, _ifFieldEmptyBail,
-        _validateFavouritesAndBail,
+        _validateIdInCollection,
         _valiDate,
         _checkBodyEmpty,
         _validateUsername,
@@ -235,14 +234,17 @@ app.get('/movies?:limit', (req, res) => {
 app.post('/movies', [
     passport.authenticate('jwt', {session: false}),
     _checkBodyEmpty,
-    _ifFieldEmptyBail(body, 'title', 'The title is required'),
-    _ifFieldEmptyBail(body, 'description', 'The description is required'),
-    _ifFieldEmptyBail(body, 'genre', 'A genre ID is required'),
-    _ifFieldEmptyBail(body, 'director', 'A director ID is required'),
-    _ifFieldEmptyBail(body, 'imagePath', 'imagePath can\'t be empty').optional({values: 'falsy'}),
-    _validateMovieTitle(body),
+    body('title', 'The title is required').notEmpty().bail({level: 'request'}),
+    body('title', 'The title must be a string').isString().bail({level: 'request'}),
+    body('description', 'The description is required').notEmpty().bail({level: 'request'}),
+    body('description', 'The description must be a string').isString().bail({level: 'request'}),
+    body('genre', 'A genre ID is required').notEmpty().bail({level: 'request'}),
+    body('director', 'A director ID is required').notEmpty().bail({level: 'request'}),
+    body('imagePath').optional({values: 'falsy'}),
+    _validateMovieTitle(body).bail({ level: 'request' }),
     _validateIdInCollection(body, 'genre', genres, 'Genre not found in database.').bail({level: 'request'}),
-    _validateIdInCollection(body, 'director', directors, 'Director not found in database.').bail({level: 'request'})
+    _validateIdInCollection(body, 'director', directors, 'Director not found in database.').bail({level: 'request'}),
+    checkExact([], {message: 'Request body contains unknown fields.'})
 ], async (req, res) => {
     try {
         validationResult(req).throw();
@@ -266,12 +268,14 @@ app.post('/movies', [
  */
 app.post('/users', [
     _checkBodyEmpty,
-    _validateUsername(body),
-    _ifFieldEmptyBail(body, 'email', 'Email is required'),
+    _validateUsername(body).bail({ level: 'request' }),
+    body('email', 'Email is required').notEmpty().bail({level: 'request'}),
     body('email', 'Email does not appear to be valid').isEmail().normalizeEmail().bail({level: 'request'}),
-    _ifFieldEmptyBail(body, 'password', 'Password is required'),
+    body('password', 'Password is required').notEmpty().bail({level: 'request'}),
     _valiDate(body, 'birthday', 'Birthday is not a valid date.').bail({level: 'request'}).optional({values: 'falsy'}),
-    _validateFavouritesAndBail()
+    body('favourites', 'Favourites must be an non empty array').isArray({ min: 1 }).bail({level: 'request'}).optional({ values: 'falsy' }),
+    _validateIdInCollection(body, 'favourites', movies, 'Invalid movie ID in favourites.').bail({level: 'request'}).optional({values: 'falsy'}),
+    checkExact([], {message: 'Request body contains unknown fields.'})
 ], async (req, res) => {
     try {
         validationResult(req).throw();
@@ -295,7 +299,7 @@ app.post('/users', [
  */
 app.delete('/users/:username', [
     passport.authenticate('jwt', {session: false}),
-    _validateUsername(param),
+    _validateUsername(param).bail({ level: 'request' }),
     param('username', 'not_allowed').custom((value, {req}) => {
         return value === req.user.username;
     })
@@ -317,19 +321,19 @@ app.delete('/users/:username', [
 app.patch('/users/:username', [
     passport.authenticate('jwt', {session: false}),
     _checkBodyEmpty,
-    _validateUsername(param),
+    _validateUsername(param).bail({ level: 'request' }),
     param('username', 'You are not allowed to update this user!').custom((value, {req}) => { //Change this to oneOf() when super users are implemented.
         return value === req.user.username;
     }).bail({level: 'request'}),
     _validateUserFieldUnchanged(body, 'username').bail({level: 'request'}).optional({values: 'falsy'}),
-    _validateUsername(body).optional({values: 'falsy'}),
+    _validateUsername(body).bail({ level: 'request' }).optional({values: 'falsy'}),
     _validateUserFieldUnchanged(body, 'email').bail({level: 'request'}).optional({values: 'falsy'}),
     body('email', 'Email does not appear to be valid').isEmail().bail({level: 'request'}).normalizeEmail().optional({values: 'falsy'}),
     _validateUserFieldUnchanged(body, 'password').bail({level: 'request'}).optional({values: 'falsy'}),
     _validateUserFieldUnchanged(body, 'birthday').bail({level: 'request'}).optional({values: 'falsy'}),
     _valiDate(body, 'birthday', 'Birthday is not a vaild date').bail({level: 'request'}).optional({values: 'falsy'}),
-    _validateFavouritesAndBail(),
     _validateUserFieldUnchanged(body, 'favourites').bail({level: 'request'}).optional({values: 'falsy'}),
+    _validateIdInCollection(body, 'favourites', movies, 'Invalid movie ID in favourites.').bail({level: 'request'}).optional({values: 'falsy'}),
     checkExact([], {message: 'Request body contains unknown fields.'})
 ], async (req, res) => {
     try {
