@@ -108,13 +108,12 @@ function _validateUsername(request) {
 function _validateMovieTitle(request) {
     return request('title').custom(async (title) => {
         try {
-            const movie = await movies.exists({ title });
-            if ((request === body) && movie) return Promise.reject('The movie \'' + title + '\' already exists in the database.');
-            if ((request === param) && !movie) return Promise.reject('The movie \'' + title + '\' does not exist in the database.');
-            return true;
+            const movieExists = await movies.exists({ title });
+            if((request === body && movieExists) || (request === param && !movieExists)) return Promise.reject(`The movie '${title}' ${movieExists ? 'already exists' : 'does not exist'} in the database.`);
         } catch (e) {
             return Promise.reject('Database error: ' + e);
         }
+        return true;
     });
 }
 
