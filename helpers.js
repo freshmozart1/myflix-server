@@ -86,11 +86,10 @@ function _checkBodyEmpty(req, res, next) {
 function _validateUsername(request) {
     return request('username').custom(async (username) => {
         if (username.length < 5) return Promise.reject('The username must be at least 5 characters long.');
-        if (!username.match(/^[a-zA-Z0-9]+$/)) return Promise.reject('The username contains non alphanumeric characters - not allowed.');
+        if (!/^[a-zA-Z0-9]+$/.test(username)) return Promise.reject('The username contains non alphanumeric characters - not allowed.');
         try {
-            const user = await users.exists({ username });
-            if ((request === body) && user) return Promise.reject('The username \'' + username + '\' already exists in the database.');
-            if ((request === param) && !user) return Promise.reject('The username \'' + username + '\' does not exist in the database.');
+            const userExists = await users.exists({ username });
+            if ((request === body && userExists) || (request === param && !userExists)) return Promise.reject(`The username '${username}' ${userExists ? 'already exists' : 'does not exist'} in the database.`);
         } catch (e) {
             return Promise.reject('Database error: ' + e);
         }
