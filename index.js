@@ -5,7 +5,15 @@ const express = require('express'),
     passport = require('passport'),
     cors = require('cors'),
     {param, matchedData, validationResult, body, checkExact} = require('express-validator'),
-    { _validateUserFieldUnchanged, _validateIdInCollection, _ifFieldEmptyBail, _validateFavouritesAndBail, _valiDate, _checkBodyEmpty, _validateUsername } = require('./helpers.js'),
+    {
+        _validateUserFieldUnchanged,
+        _validateIdInCollection, _ifFieldEmptyBail,
+        _validateFavouritesAndBail,
+        _valiDate,
+        _checkBodyEmpty,
+        _validateUsername,
+        _validateMovieTitle
+    } = require('./helpers.js'),
     models = require('./models.js'),
     auth = require('./auth.js'),
     app = express(),
@@ -232,14 +240,7 @@ app.post('/movies', [
     _ifFieldEmptyBail(body, 'genre', 'A genre ID is required'),
     _ifFieldEmptyBail(body, 'director', 'A director ID is required'),
     _ifFieldEmptyBail(body, 'imagePath', 'imagePath can\'t be empty').optional({values: 'falsy'}),
-    body('title').custom(async title => {
-        try {
-            if (await movies.exists({title})) return Promise.reject('Movie already exists in the database.');
-        } catch (e) {
-            return Promise.reject('Database error: ' + e);
-        }
-        return Promise.resolve();
-    }).bail({level: 'request'}),
+    _validateMovieTitle(body),
     _validateIdInCollection(body, 'genre', genres, 'Genre not found in database.').bail({level: 'request'}),
     _validateIdInCollection(body, 'director', directors, 'Director not found in database.').bail({level: 'request'})
 ], async (req, res) => {

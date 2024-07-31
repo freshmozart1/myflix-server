@@ -126,6 +126,32 @@ function _validateUsername(request, bailLevel = 'request') {
     }).bail({ level: bailLevel });
 }
 
+/**
+ * This helper function is a express-validator that checks if a movie title is valid.
+ * @param {*} request Where to look for the field in the request.
+ * @param {*} bailLevel The level to bail out of the validation chain.
+ * @returns {ValidationChain}
+ */
+function _validateMovieTitle(request, bailLevel = 'request') {
+    return request('title').custom(async (title) => {
+        if (request === body )
+        {
+            try {
+                if (await movies.exists({ title })) return Promise.reject('A movie with the title \'' + title + '\' already exists in the database.');
+            } catch (e) {
+                return Promise.reject('Database error: ' + e);
+            }
+        } else if (request === param) {
+            try {
+                if (!(await movies.exists({ title }))) return Promise.reject('A movie with the title \'' + title + '\' does not exist in the database.');
+            } catch (e) {
+                return Promise.reject('Database error: ' + e);
+            }
+        }
+        return true;
+    }).bail({ level: bailLevel });
+}
+
 module.exports = {
     _validateUserFieldUnchanged,
     _validateIdInCollection,
@@ -133,5 +159,6 @@ module.exports = {
     _validateFavouritesAndBail,
     _valiDate,
     _checkBodyEmpty,
-    _validateUsername
+    _validateUsername,
+    _validateMovieTitle
 };
