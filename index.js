@@ -105,52 +105,29 @@ app.get('/directors/:name', (req, res) => {
 });
 
 /**
- * @api {get} /genres?:limit Get all or a limited number of genres
+ * @api {get} /genres/:name?limit Get all, a limited number or a specific genre by name
  */
-app.get('/genres?:limit', (req, res) => {
-    if (req.query.limit && /^[1-9]\d*$/.test(req.query.limit)) {
-        genres.find().limit(parseInt(req.query.limit))
-            .then(genres => {
-                if (genres.length === 0) {
-                    return res.status(404).send('No genres found.');
-                }
-                res.status(200).json(genres)
-            })
-            .catch(err => {
-                console.error(err);
-                res.status(500).send('Error: ' + err);
-            });
-    } else {
-        genres.find()
-            .then(genres => {
-                if (genres.length === 0) {
-                    return res.status(404).send('No genres found.');
-                }
-                res.status(200).json(genres)
-            })
-            .catch(err => {
-                console.error(err);
-                res.status(500).send('Error: ' + err);
-            });
-
+app.get('/genres/:name?', [
+    param('name').optional({values: 'falsy'}),
+    query('limit').optional({values: 'falsy'}).isInt({gt: 0}),
+    checkExact([], {message: 'Request contains unknown fields.'})
+], async (req, res) => {
+    try {
+        validationResult(req).throw();
+        const data = matchedData(req);
+        if (data.name) {
+            const genre = await genres.findOne({name: data.name});
+            return genre ? res.status(200).json(genre) : res.status(404).end(data.name + ' was not found.');
+        } else {
+            let query = genres.find();
+            if (data.limit) query = query.limit(parseInt(data.limit));
+            const genreList = await query;
+            return genreList.length === 0 ? res.status(404).end('No genres found.') : res.status(200).json(genreList);
+        }
+    } catch (e) {
+        if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
+        return res.status(500).end('Error: ' + e);
     }
-});
-
-/**
- * @api {get} /genres/:name Get a genre by name
- */
-app.get('/genres/:name', (req, res) => {
-    genres.findOne({ name: req.params.name })
-        .then(genre => {
-            if (!genre) {
-                return res.status(404).send(req.params.name + ' was not found.');
-            }
-            res.status(200).json(genre);
-        })
-        .catch(err => {
-            console.error(err);
-            res.status(500).send('Error: ' + err);
-        });
 });
 
 /**
