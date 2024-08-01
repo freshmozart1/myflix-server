@@ -11,8 +11,10 @@ const express = require('express'),
         _valiDate,
         _checkBodyEmpty,
         _validateUsername,
+        _validateDirectorName,
         _validateMovieTitle,
-        _getDocuments
+        _getDocuments,
+        _createDocument
     } = require('./helpers.js'),
     models = require('./models.js'),
     auth = require('./auth.js'),
@@ -37,34 +39,6 @@ app.use(express.json());
 
 auth(app);
 require('./passport.js');
-
-/**
- * @api {post} /directors Create a new director
- */
-app.post('/directors', passport.authenticate('jwt', {session: false}), async (req, res) => {
-    await directors.findOne({ name: req.body.name })
-        .then(director => {
-            if (director) {
-                return res.status(400).send(req.body.name + ' already exists.');
-            } else {
-                directors.create({
-                    name: req.body.name,
-                    birthday: req.body.birthday,
-                    deathday: req.body.deathday,
-                    biography: req.body.biography
-                }).then(director => {
-                    res.status(201).json(director);
-                }).catch(err => {
-                    console.error(err);
-                    res.status(500).send('Error: ' + err);
-                });
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            res.status(500).send('Error: ' + err);
-        });
-});
 
 /**
  * @api {get} /directors/:name?limit Get all, a limited number or a specific director by name
@@ -116,6 +90,23 @@ app.post('/genres',  passport.authenticate('jwt', {session: false}), (req, res) 
 });
 
 /**
+ * @api {post} /directors Create a new director
+ */
+app.post('/directors', [
+    passport.authenticate('jwt', {session: false}),
+    _checkBodyEmpty,
+    body('name', 'The name is required').notEmpty().bail({level: 'request'}),
+    _validateDirectorName(body).bail({level: 'request'}),
+    _valiDate(body, 'birthday', 'Birthday is not a valid date.').bail({level: 'request'}),
+    _valiDate(body, 'deathday', 'Deathday is not a valid date.').bail({level: 'request'}).optional({values: 'falsy'}),
+    body('biography', 'Biography is required').notEmpty().bail({level: 'request'}),
+    body('biography', 'Biography must be a string').isString().bail({level: 'request'}),
+    checkExact([], {message: 'Request body contains unknown fields.'})
+], async (req, res) => {
+    _createDocument(req, res, directors, 'director');
+});
+
+/**
  * @api {post} /movies Create a new movie
  */
 app.post('/movies', [
@@ -132,22 +123,8 @@ app.post('/movies', [
     _validateIdInCollection(body, 'genre', genres, 'Genre not found in database.').bail({level: 'request'}),
     _validateIdInCollection(body, 'director', directors, 'Director not found in database.').bail({level: 'request'}),
     checkExact([], {message: 'Request body contains unknown fields.'})
-], async (req, res) => {
-    try {
-        validationResult(req).throw();
-        const data = matchedData(req);
-        await movies.create({
-            title: data.title,
-            description: data.description,
-            genre: data.genre,
-            director: data.director,
-            imagePath: data.imagePath ? data.imagePath : null
-        });
-        res.status(201).end('Movie ' + data.title + ' was created.');
-    } catch (e) {
-        if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
-        return res.status(500).end('Database error: ' + e);
-    }
+], (req, res) => {
+   _createDocument(req, res, movies, 'movie');
 });
 
 /**
@@ -163,22 +140,8 @@ app.post('/users', [
     body('favourites', 'Favourites must be an non empty array').isArray({ min: 1 }).bail({level: 'request'}).optional({ values: 'falsy' }),
     _validateIdInCollection(body, 'favourites', movies, 'Invalid movie ID in favourites.').bail({level: 'request'}).optional({values: 'falsy'}),
     checkExact([], {message: 'Request body contains unknown fields.'})
-], async (req, res) => {
-    try {
-        validationResult(req).throw();
-        const data = matchedData(req);
-        await users.create({
-            username: data.username,
-            password: users.hashPassword(data.password),
-            email: data.email,
-            birthday: data.birthday ? data.birthday : null,
-            favourites: data.favourites ? data.favourites : null
-        });
-        res.status(201).end('User ' + data.username + ' was created.');
-    } catch (e) {
-        if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
-        return res.status(500).end('Database error: ' + e);
-    }
+], (req, res) => {
+    _createDocument(req, res, users, 'user');
 });
 
 /**
