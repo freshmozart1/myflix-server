@@ -1,5 +1,5 @@
 const mongoose = require('mongoose'),
-    { body, param } = require('express-validator'),
+    { body, param, matchedData, validationResult } = require('express-validator'),
     { parseISO, isValid } = require('date-fns'),
     models = require('./models'),
     movies = models.movie,
@@ -117,11 +117,41 @@ function _validateMovieTitle(request) {
     });
 }
 
+async function _getDocuments(req, res, collection, identifier) {
+    try {
+        validationResult(req).throw();
+        const data = matchedData(req);
+        if (identifier === 'movies') {
+            if (data.title) {
+                const movie = await collection.findOne({title: data.title}).populate('genre').populate('director');
+                return movie ? res.status(200).json(movie) : res.status(404).end('Movie not found.');
+            } else {
+                let query = collection.find();
+                if (data.limit) query = query.limit(parseInt(data.limit));
+                const movieList = await query.populate('genre').populate('director');
+                return movieList.length === 0 ? res.status(404).end('No movies found.') : res.status(200).json(movieList);
+            }
+        } else if (data.name) {
+            const document = await collection.findOne({name: data.name});
+            return document ? res.status(200).json(document) : res.status(404).end(data.name + ' was not found.');
+        } else {
+            let query = collection.find();
+            if (data.limit) query = query.limit(parseInt(data.limit));
+            const documentList = await query;
+            return documentList.length === 0 ? res.status(404).end(`No ${identifier} found.`) : res.status(200).json(documentList);
+        }
+    } catch (e) {
+        if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
+        return res.status(500).end('Error: ' + e);
+    }
+}
+
 module.exports = {
     _validateFieldUnchanged,
     _validateIdInCollection,
     _valiDate,
     _checkBodyEmpty,
     _validateUsername,
-    _validateMovieTitle
+    _validateMovieTitle,
+    _getDocuments
 };

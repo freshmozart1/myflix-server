@@ -11,7 +11,8 @@ const express = require('express'),
         _valiDate,
         _checkBodyEmpty,
         _validateUsername,
-        _validateMovieTitle
+        _validateMovieTitle,
+        _getDocuments
     } = require('./helpers.js'),
     models = require('./models.js'),
     auth = require('./auth.js'),
@@ -67,53 +68,24 @@ app.post('/directors', passport.authenticate('jwt', {session: false}), async (re
 
 /**
  * @api {get} /directors/:name?limit Get all, a limited number or a specific director by name
- */
-app.get('/directors/:name?', [
-    param('name').optional({values: 'falsy'}),
-    query('limit').optional({values: 'falsy'}).isInt({gt: 0}),
-    checkExact([], {message: 'Request contains unknown fields.'})
-], async (req, res) => {
-    try {
-        validationResult(req).throw();
-        const data = matchedData(req);
-        if (data.name) {
-            const director = await directors.findOne({name: data.name});
-            return director ? res.status(200).json(director) : res.status(404).end(data.name + ' was not found.');
-        } else {
-            let query = directors.find();
-            if (data.limit) query = query.limit(parseInt(data.limit));
-            const directorList = await query;
-            return directorList.length === 0 ? res.status(404).end('No directors found.') : res.status(200).json(directorList);
-        }
-    } catch (e) {
-        if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
-        return res.status(500).end('Error: ' + e);
-    }
-});
-
-/**
  * @api {get} /genres/:name?limit Get all, a limited number or a specific genre by name
+ * @api {get} /movies/:title?limit Get all, a limited number or a specific movie by title
  */
-app.get('/genres/:name?', [
+
+app.get(['/directors/:name?', '/genres/:name?', '/movies/:title?'], [
     param('name').optional({values: 'falsy'}),
+    param('title').optional({values: 'falsy'}),
     query('limit').optional({values: 'falsy'}).isInt({gt: 0}),
     checkExact([], {message: 'Request contains unknown fields.'})
-], async (req, res) => {
-    try {
-        validationResult(req).throw();
-        const data = matchedData(req);
-        if (data.name) {
-            const genre = await genres.findOne({name: data.name});
-            return genre ? res.status(200).json(genre) : res.status(404).end(data.name + ' was not found.');
-        } else {
-            let query = genres.find();
-            if (data.limit) query = query.limit(parseInt(data.limit));
-            const genreList = await query;
-            return genreList.length === 0 ? res.status(404).end('No genres found.') : res.status(200).json(genreList);
-        }
-    } catch (e) {
-        if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
-        return res.status(500).end('Error: ' + e);
+], (req, res) => {
+    const path = req.path.split('/')[1];
+    if (path === 'directors') {
+        _getDocuments(req, res, directors, 'directors');
+    } else if (path === 'genres') {
+        _getDocuments(req, res, genres, 'genres');
+    }
+    else if (path === 'movies') {
+        _getDocuments(req, res, movies, 'movies');
     }
 });
 
@@ -141,32 +113,6 @@ app.post('/genres',  passport.authenticate('jwt', {session: false}), (req, res) 
             console.error(err);
             res.status(500).send('Error: ' + err);
         });
-});
-
-/**
- * @api {get} /movies/:title?limit Get all, a limited number or a specific movie by title
- */
-app.get('/movies/:title?', [
-    param('title').optional({values: 'falsy'}),
-    query('limit').optional({values: 'falsy'}).isInt({gt: 0}),
-    checkExact([], {message: 'Request contains unknown fields.'})
-], async (req, res) => {
-    try {
-        validationResult(req).throw();
-        const data = matchedData(req);
-        if (data.title) {
-            const movie = await movies.findOne({title: data.title}).populate('genre').populate('director');
-            return movie ? res.status(200).json(movie) : res.status(404).end('Movie not found.');
-        } else {
-            let query = movies.find();
-            if (data.limit) query = query.limit(parseInt(data.limit));
-            const movieList = await query.populate('genre').populate('director');
-            return movieList.length === 0 ? res.status(404).end('No movies found.') : res.status(200).json(movieList);
-        }
-    } catch (e) {
-        if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
-        return res.status(500).end('Error: ' + e);
-    }
 });
 
 /**
@@ -286,27 +232,6 @@ app.patch('/users/:username', [
     } catch (e) {
         if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
         res.status(500).end('Database error: ' + e);
-    }
-});
-
-app.post('/test', [
-    body().custom(value => {
-        if ((Object.keys(value).length === 1) && (value.test === 'freshmozart')) return Promise.reject('No valid data provided.');
-        return true;
-    })
-], (req, res) => {
-    try {
-        validationResult(req).throw();
-        res.status(200).send('Success');
-    } catch (e) {
-        switch (e.type) {
-            case 'field':
-                res.status(422).json({ errors: e.errors });
-                break;
-            default:
-                console.error(e.errors);
-                res.status(500).send('Error: ' + e);
-        }
     }
 });
 
