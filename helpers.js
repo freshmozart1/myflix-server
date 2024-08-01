@@ -2,6 +2,7 @@ const mongoose = require('mongoose'),
     { body, param, matchedData, validationResult } = require('express-validator'),
     { parseISO, isValid } = require('date-fns'),
     models = require('./models'),
+    directors = models.director,
     movies = models.movie,
     users = models.user;
 
@@ -97,6 +98,19 @@ function _validateUsername(request) {
     });
 }
 
+function _validateDirectorName(request) {
+    return request('name').custom(async name => {
+        if (name.length < 3) return Promise.reject('The name must be at least 3 characters long.');
+        try {
+            const directorExists = await directors.exists({ name });
+            if ((request === body && directorExists) || (request === param && !directorExists)) return Promise.reject(`The director '${name}' ${directorExists ? 'already exists' : 'does not exist'} in the database.`);
+        } catch (e) {
+            return Promise.reject('Database error: ' + e);
+        }
+        return true;
+    });
+}
+
 /**
  * This helper function is a express-validator. If the request parameter is the body section
  * of a request, it checks if a movie exists in the database and if it does,
@@ -146,12 +160,40 @@ async function _getDocuments(req, res, collection, identifier) {
     }
 }
 
+async function _createDocument(req, res, collection, identifier) {
+    try {
+        validationResult(req).throw();
+        const data = matchedData(req);
+        if (identifier === 'user') {
+            data.password = users.hashPassword(data.password);
+            data.birthday = data.birthday ? data.birthday : null;
+            data.favourites = data.favourites ? data.favourites : null;
+        } else if (identifier === 'movie') {
+            data.imagePath = data.imagePath ? data.imagePath : null;
+        } else if (identifier === 'genre') {
+            data.description = data.description ? data.description : null;
+        } else if (identifier === 'director') {
+            data.deathday = data.deathday ? data.deathday : null;
+            data.biography = data.biography ? data.biography : null;
+        } else {
+            throw new Error('Unknown identifier: ' + identifier);
+        }
+        collection.create(data);
+        res.status(201).end(identifier + ' was created.');
+    } catch (e) {
+        if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
+        return res.status(500).end('Database error: ' + e);
+    }
+}
+
 module.exports = {
     _validateFieldUnchanged,
     _validateIdInCollection,
     _valiDate,
     _checkBodyEmpty,
     _validateUsername,
+    _validateDirectorName,
     _validateMovieTitle,
-    _getDocuments
+    _getDocuments,
+    _createDocument
 };
