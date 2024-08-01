@@ -4,7 +4,7 @@ const express = require('express'),
     methodOverride = require('method-override'),
     passport = require('passport'),
     cors = require('cors'),
-    {param, matchedData, validationResult, body, checkExact} = require('express-validator'),
+    {param, matchedData, validationResult, body, checkExact, query} = require('express-validator'),
     {
         _validateFieldUnchanged,
         _validateIdInCollection,
@@ -180,51 +180,28 @@ app.post('/genres',  passport.authenticate('jwt', {session: false}), (req, res) 
 });
 
 /**
- * @api {get} /movies/:title Get a movie by title
+ * @api {get} /movies/:title?limit Get all, a limited number or a specific movie by title
  */
-app.get('/movies/:title', (req, res) => {
-    movies.findOne({ title: req.params.title }).populate('genre').populate('director')
-        .then(movie => {
-            if (!movie) {
-                return res.status(404).send(req.params.title + ' was not found.');
-            }
-            res.status(200).json(movie);
-        })
-        .catch(err => {
-            console.error(err);
-            res.status(500).send('Error: ' + err);
-        });
-});
-
-/**
- * @api {get} /movies?:limit Get all or a limited number of movies
- */
-app.get('/movies?:limit', (req, res) => {
-    if (req.query.limit && /^[1-9]\d*$/.test(req.query.limit)) {
-        movies.find().limit(parseInt(req.query.limit)).populate('genre').populate('director')
-            .then(movies => {
-                if (movies.length === 0) {
-                    return res.status(404).send('No movies found.');
-                }
-                res.status(200).json(movies)
-            })
-            .catch(err => {
-                console.error(err);
-                res.status(500).send('Error: ' + err);
-            });
-
-    } else {
-        movies.find().populate('genre').populate('director')
-            .then(movies => {
-                if (movies.length === 0) {
-                    return res.status(404).send('No movies found.');
-                }
-                res.status(200).json(movies)
-            })
-            .catch(err => {
-                console.error(err);
-                res.status(500).send('Error: ' + err);
-            });
+app.get('/movies/:title?', [
+    param('title').optional({values: 'falsy'}),
+    query('limit').optional({values: 'falsy'}).isInt({gt: 0}),
+    checkExact([], {message: 'Request contains unknown fields.'})
+], async (req, res) => {
+    try {
+        validationResult(req).throw();
+        const data = matchedData(req);
+        if (data.title) {
+            const movie = await movies.findOne({title: data.title}).populate('genre').populate('director');
+            return movie ? res.status(200).json(movie) : res.status(404).end('Movie not found.');
+        } else {
+            let query = movies.find();
+            if (data.limit) query = query.limit(parseInt(data.limit));
+            const movieList = await query.populate('genre').populate('director');
+            return movieList.length === 0 ? res.status(404).end('No movies found.') : res.status(200).json(movieList);
+        }
+    } catch (e) {
+        if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
+        return res.status(500).end('Error: ' + e);
     }
 });
 
