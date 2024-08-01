@@ -66,42 +66,29 @@ app.post('/directors', passport.authenticate('jwt', {session: false}), async (re
 });
 
 /**
- * @api {get} /directors?:limit Get all or a limited number of directors
+ * @api {get} /directors/:name?limit Get all, a limited number or a specific director by name
  */
-app.get('/directors?:limit', (req, res) => {
-    if (req.query.limit && /^[1-9]\d*$/.test(req.query.limit)) {
-        directors.find().limit(parseInt(req.query.limit))
-            .then(directors => res.status(200).json(directors))
-            .catch(err => {
-                console.error(err);
-                res.status(500).send('Error: ' + err);
-            });
-    } else {
-        directors.find()
-            .then(directors => res.status(200).json(directors))
-            .catch(err => {
-                console.error(err);
-                res.status(500).send('Error: ' + err);
-            });
-
+app.get('/directors/:name?', [
+    param('name').optional({values: 'falsy'}),
+    query('limit').optional({values: 'falsy'}).isInt({gt: 0}),
+    checkExact([], {message: 'Request contains unknown fields.'})
+], async (req, res) => {
+    try {
+        validationResult(req).throw();
+        const data = matchedData(req);
+        if (data.name) {
+            const director = await directors.findOne({name: data.name});
+            return director ? res.status(200).json(director) : res.status(404).end(data.name + ' was not found.');
+        } else {
+            let query = directors.find();
+            if (data.limit) query = query.limit(parseInt(data.limit));
+            const directorList = await query;
+            return directorList.length === 0 ? res.status(404).end('No directors found.') : res.status(200).json(directorList);
+        }
+    } catch (e) {
+        if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
+        return res.status(500).end('Error: ' + e);
     }
-});
-
-/**
- * @api {get} /directors/:name Get a director by name
- */
-app.get('/directors/:name', (req, res) => {
-    directors.findOne({ name: req.params.name })
-        .then(director => {
-            if (!director) {
-                return res.status(404).send(req.params.name + ' was not found.');
-            }
-            res.status(200).json(director);
-        })
-        .catch(err => {
-            console.error(err);
-            res.status(500).send('Error: ' + err);
-        });
 });
 
 /**
