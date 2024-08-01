@@ -1,8 +1,9 @@
 const mongoose = require('mongoose'),
-    { body, param, matchedData, validationResult } = require('express-validator'),
+    { body, param, matchedData, validationResult, checkExact } = require('express-validator'),
     { parseISO, isValid } = require('date-fns'),
     models = require('./models'),
     directors = models.director,
+    genres = models.genre,
     movies = models.movie,
     users = models.user;
 
@@ -98,6 +99,15 @@ function _validateUsername(request) {
     });
 }
 
+/**
+ * This helper function is a express-validator that checks if a directors name is valid.
+ * If the request parameter is the body section of a request, it returns an error message
+ * if the directors name exists in the database. If the request parameter is the parameter
+ * section of a request, it returns an error message if the directors name does not exist
+ * in the database.
+ * @param {*} request 
+ * @returns {ValidationChain}
+ */
 function _validateDirectorName(request) {
     return request('name').custom(async name => {
         if (name.length < 3) return Promise.reject('The name must be at least 3 characters long.');
@@ -186,6 +196,57 @@ async function _createDocument(req, res, collection, identifier) {
     }
 }
 
+function _dynamicRouteValidation(req, res, next) {
+    const validationChain = {
+        '/directors': [
+            body('name', 'The name is required').notEmpty().bail({level: 'request'}),
+            _validateDirectorName(body).bail({level: 'request'}),
+            _valiDate(body, 'birthday', 'Birthday is not a valid date.').bail({level: 'request'}),
+            _valiDate(body, 'deathday', 'Deathday is not a valid date.').bail({level: 'request'}).optional({values: 'falsy'}),
+            body('biography', 'Biography is required').notEmpty().bail({level: 'request'}),
+            body('biography', 'Biography must be a string').isString().bail({level: 'request'})
+        ],
+        '/movies': [
+            body('title', 'The title is required').notEmpty().bail({level: 'request'}),
+            body('title', 'The title must be a string').isString().bail({level: 'request'}),
+            body('description', 'The description is required').notEmpty().bail({level: 'request'}),
+            body('description', 'The description must be a string').isString().bail({level: 'request'}),
+            body('genre', 'A genre ID is required').notEmpty().bail({level: 'request'}),
+            body('director', 'A director ID is required').notEmpty().bail({level: 'request'}),
+            body('imagePath').optional({values: 'falsy'}),
+            _validateMovieTitle(body).bail({ level: 'request' }),
+            _validateIdInCollection(body, 'genre', genres, 'Genre not found in database.').bail({level: 'request'}),
+            _validateIdInCollection(body, 'director', directors, 'Director not found in database.').bail({level: 'request'})
+        ],
+        '/users': [
+            _validateUsername(body).bail({ level: 'request' }),
+            body('email', 'Email is required').notEmpty().bail({level: 'request'}),
+            body('email', 'Email does not appear to be valid').isEmail().normalizeEmail().bail({level: 'request'}),
+            body('password', 'Password is required').notEmpty().bail({level: 'request'}),
+            _valiDate(body, 'birthday', 'Birthday is not a valid date.').bail({level: 'request'}).optional({values: 'falsy'}),
+            body('favourites', 'Favourites must be an non empty array').isArray({ min: 1 }).bail({level: 'request'}).optional({ values: 'falsy' }),
+            _validateIdInCollection(body, 'favourites', movies, 'Invalid movie ID in favourites.').bail({level: 'request'}).optional({values: 'falsy'})
+        ]
+    }[req.path];
+    if (!validationChain) return next();
+    validationChain.push(checkExact([], {message: 'Request contains unknown fields.'}));
+    return validationChain.reduce((acc, fn) => { //This line will build a chain of promises
+        return acc.then(() => { //If the last promise in the chain resolves...
+            return new Promise((resolve, reject) => { //... this line will add a new Promise to the chain.
+                /*
+                express-validators like body() return a middleware function.
+                fn calls this middleware function with the request, response and a callback function.
+                */
+                return fn(req, res, err => {
+                    return err ? reject(err) : resolve() //If the middleware function from the express-validator returns an error, reject the promise.
+                });
+            });
+        });
+    }, Promise.resolve())
+        .then(() => next()) //If all promises resolve, call the next middleware function.
+        .catch(next); // This will catch errors and pass them somewhere, but I'm not sure where.
+}
+
 module.exports = {
     _validateFieldUnchanged,
     _validateIdInCollection,
@@ -195,5 +256,6 @@ module.exports = {
     _validateDirectorName,
     _validateMovieTitle,
     _getDocuments,
-    _createDocument
+    _createDocument,
+    _dynamicRouteValidation
 };

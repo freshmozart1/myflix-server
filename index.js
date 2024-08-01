@@ -11,10 +11,9 @@ const express = require('express'),
         _valiDate,
         _checkBodyEmpty,
         _validateUsername,
-        _validateDirectorName,
-        _validateMovieTitle,
         _getDocuments,
-        _createDocument
+        _createDocument,
+        _dynamicRouteValidation
     } = require('./helpers.js'),
     models = require('./models.js'),
     auth = require('./auth.js'),
@@ -63,9 +62,6 @@ app.get(['/directors/:name?', '/genres/:name?', '/movies/:title?'], [
     }
 });
 
-/**
- * @api {post} /genres Create a new genre
- */
 app.post('/genres',  passport.authenticate('jwt', {session: false}), (req, res) => {
     genres.findOne({ name: req.body.name })
         .then(genre => {
@@ -89,59 +85,19 @@ app.post('/genres',  passport.authenticate('jwt', {session: false}), (req, res) 
         });
 });
 
-/**
- * @api {post} /directors Create a new director
- */
-app.post('/directors', [
+app.post(['/directors', '/movies', '/users'], [
     passport.authenticate('jwt', {session: false}),
     _checkBodyEmpty,
-    body('name', 'The name is required').notEmpty().bail({level: 'request'}),
-    _validateDirectorName(body).bail({level: 'request'}),
-    _valiDate(body, 'birthday', 'Birthday is not a valid date.').bail({level: 'request'}),
-    _valiDate(body, 'deathday', 'Deathday is not a valid date.').bail({level: 'request'}).optional({values: 'falsy'}),
-    body('biography', 'Biography is required').notEmpty().bail({level: 'request'}),
-    body('biography', 'Biography must be a string').isString().bail({level: 'request'}),
-    checkExact([], {message: 'Request body contains unknown fields.'})
-], async (req, res) => {
-    _createDocument(req, res, directors, 'director');
-});
-
-/**
- * @api {post} /movies Create a new movie
- */
-app.post('/movies', [
-    passport.authenticate('jwt', {session: false}),
-    _checkBodyEmpty,
-    body('title', 'The title is required').notEmpty().bail({level: 'request'}),
-    body('title', 'The title must be a string').isString().bail({level: 'request'}),
-    body('description', 'The description is required').notEmpty().bail({level: 'request'}),
-    body('description', 'The description must be a string').isString().bail({level: 'request'}),
-    body('genre', 'A genre ID is required').notEmpty().bail({level: 'request'}),
-    body('director', 'A director ID is required').notEmpty().bail({level: 'request'}),
-    body('imagePath').optional({values: 'falsy'}),
-    _validateMovieTitle(body).bail({ level: 'request' }),
-    _validateIdInCollection(body, 'genre', genres, 'Genre not found in database.').bail({level: 'request'}),
-    _validateIdInCollection(body, 'director', directors, 'Director not found in database.').bail({level: 'request'}),
-    checkExact([], {message: 'Request body contains unknown fields.'})
+    _dynamicRouteValidation
 ], (req, res) => {
-   _createDocument(req, res, movies, 'movie');
-});
-
-/**
- * @api {post} /users Create a new user
- */
-app.post('/users', [
-    _checkBodyEmpty,
-    _validateUsername(body).bail({ level: 'request' }),
-    body('email', 'Email is required').notEmpty().bail({level: 'request'}),
-    body('email', 'Email does not appear to be valid').isEmail().normalizeEmail().bail({level: 'request'}),
-    body('password', 'Password is required').notEmpty().bail({level: 'request'}),
-    _valiDate(body, 'birthday', 'Birthday is not a valid date.').bail({level: 'request'}).optional({values: 'falsy'}),
-    body('favourites', 'Favourites must be an non empty array').isArray({ min: 1 }).bail({level: 'request'}).optional({ values: 'falsy' }),
-    _validateIdInCollection(body, 'favourites', movies, 'Invalid movie ID in favourites.').bail({level: 'request'}).optional({values: 'falsy'}),
-    checkExact([], {message: 'Request body contains unknown fields.'})
-], (req, res) => {
-    _createDocument(req, res, users, 'user');
+    const path = req.path.split('/')[1];
+    if (path === 'directors') {
+        _createDocument(req, res, directors, 'director');
+    } else if (path === 'movies') {
+        _createDocument(req, res, movies, 'movie');
+    } else if (path === 'users') {
+        _createDocument(req, res, users, 'user');
+    }
 });
 
 /**
