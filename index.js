@@ -39,10 +39,16 @@ app.use(express.json());
 auth(app);
 require('./passport.js');
 
+/**
+ * @api {get} / Get documentation
+ */
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/documentation.html');
 });
 
+/**
+ * @api {get} /users/:username Get all publicly available information about a user by username
+ */
 app.get('/users/:username', [
     param('username', 'Username is required').exists().bail({level: 'request'}),
     checkExact([], {message: 'Request contains unknown fields.'})
@@ -73,6 +79,9 @@ app.get(['/directors/:name?', '/genres/:name?', '/movies/:title?'], [
     }
 });
 
+/**
+ * @api {post} /users Create a new user
+ */
 app.post('/users', [
     _checkBodyEmpty,
     _dynamicRouteValidation
@@ -80,7 +89,12 @@ app.post('/users', [
     _createDocument(req, res, users);
 });
 
-app.post(['/directors', '/genres', '/movies', '/users'], [
+/**
+ * @api {post} /directors Create a new director
+ * @api {post} /genres Create a new genre
+ * @api {post} /movies Create a new movie
+ */
+app.post(['/directors', '/genres', '/movies'], [
     passport.authenticate('jwt', {session: false}),
     _checkBodyEmpty,
     _dynamicRouteValidation
@@ -91,8 +105,6 @@ app.post(['/directors', '/genres', '/movies', '/users'], [
         _createDocument(req, res, genres);
     } else if (req.path === '/movies') {
         _createDocument(req, res, movies);
-    } else if (req.path === '/users') {
-        _createDocument(req, res, users);
     }
 });
 
@@ -102,7 +114,7 @@ app.post(['/directors', '/genres', '/movies', '/users'], [
 app.delete('/users/:username', [
     passport.authenticate('jwt', {session: false}),
     _validateUsername(param).bail({ level: 'request' }),
-    param('username', 'not_allowed').custom((value, {req}) => {
+    param('username', 'You are not allowed to delete this user!').custom((value, {req}) => {
         return value === req.user.username;
     })
 ], async (req, res) => {
@@ -148,10 +160,6 @@ app.patch('/users/:username', [
         if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
         res.status(500).end('Database error: ' + e);
     }
-});
-
-app.get('/test', (req, res) => {
-    res.status(200).end(movies.modelName);
 });
 
 app.use(methodOverride());
