@@ -62,7 +62,7 @@ app.get(['/directors/:name?', '/genres/:name?', '/movies/:title?'], [
     }
 });
 
-app.post('/genres',  passport.authenticate('jwt', {session: false}), (req, res) => {
+/*app.post('/genres',  passport.authenticate('jwt', {session: false}), (req, res) => {
     genres.findOne({ name: req.body.name })
         .then(genre => {
             if (genre) {
@@ -83,19 +83,20 @@ app.post('/genres',  passport.authenticate('jwt', {session: false}), (req, res) 
             console.error(err);
             res.status(500).send('Error: ' + err);
         });
-});
+});*/
 
-app.post(['/directors', '/movies', '/users'], [
+app.post(['/directors', '/genres', '/movies', '/users'], [
     passport.authenticate('jwt', {session: false}),
     _checkBodyEmpty,
     _dynamicRouteValidation
 ], (req, res) => {
-    const path = req.path.split('/')[1];
-    if (path === 'directors') {
+    if (req.path === '/directors') {
         _createDocument(req, res, directors);
-    } else if (path === 'movies') {
+    } else if (req.path === '/genres') {
+        _createDocument(req, res, genres);
+    } else if (req.path === '/movies') {
         _createDocument(req, res, movies);
-    } else if (path === 'users') {
+    } else if (req.path === '/users') {
         _createDocument(req, res, users);
     }
 });
