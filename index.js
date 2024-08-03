@@ -92,11 +92,11 @@ app.post(['/directors', '/movies', '/users'], [
 ], (req, res) => {
     const path = req.path.split('/')[1];
     if (path === 'directors') {
-        _createDocument(req, res, directors, 'director');
+        _createDocument(req, res, directors);
     } else if (path === 'movies') {
-        _createDocument(req, res, movies, 'movie');
+        _createDocument(req, res, movies);
     } else if (path === 'users') {
-        _createDocument(req, res, users, 'user');
+        _createDocument(req, res, users);
     }
 });
 

@@ -170,26 +170,26 @@ async function _getDocuments(req, res, collection, identifier) {
     }
 }
 
-async function _createDocument(req, res, collection, identifier) {
+async function _createDocument(req, res, collection) {
     try {
         validationResult(req).throw();
         const data = matchedData(req);
-        if (identifier === 'user') {
+        if (collection.modelName === 'user') {
             data.password = users.hashPassword(data.password);
             data.birthday = data.birthday ? data.birthday : null;
             data.favourites = data.favourites ? data.favourites : null;
-        } else if (identifier === 'movie') {
+        } else if (collection.modelName === 'movie') {
             data.imagePath = data.imagePath ? data.imagePath : null;
-        } else if (identifier === 'genre') {
+        } else if (collection.modelName === 'genre') {
             data.description = data.description ? data.description : null;
-        } else if (identifier === 'director') {
+        } else if (collection.modelName === 'director') {
             data.deathday = data.deathday ? data.deathday : null;
             data.biography = data.biography ? data.biography : null;
         } else {
-            throw new Error('Unknown identifier: ' + identifier);
+            throw new Error('Unknown collection.');
         }
         collection.create(data);
-        res.status(201).end(identifier + ' was created.');
+        res.status(201).end(collection.modelName + ' was created.');
     } catch (e) {
         if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
         return res.status(500).end('Database error: ' + e);
