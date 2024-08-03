@@ -62,28 +62,12 @@ app.get(['/directors/:name?', '/genres/:name?', '/movies/:title?'], [
     }
 });
 
-/*app.post('/genres',  passport.authenticate('jwt', {session: false}), (req, res) => {
-    genres.findOne({ name: req.body.name })
-        .then(genre => {
-            if (genre) {
-                return res.status(400).send(req.body.name + ' already exists.');
-            } else {
-                genres.create({
-                    name: req.body.name,
-                    description: req.body.description
-                }).then(genre => {
-                    res.status(201).json(genre);
-                }).catch(err => {
-                    console.error(err);
-                    res.status(500).send('Error: ' + err);
-                });
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            res.status(500).send('Error: ' + err);
-        });
-});*/
+app.post('/users', [
+    _checkBodyEmpty,
+    _dynamicRouteValidation
+], (req, res) => {
+    _createDocument(req, res, users);
+});
 
 app.post(['/directors', '/genres', '/movies', '/users'], [
     passport.authenticate('jwt', {session: false}),
