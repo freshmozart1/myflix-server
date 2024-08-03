@@ -19,6 +19,7 @@ function _validateFieldUnchanged(request, field) {
         if (field === 'favourites') {
             return fieldValue.length !== req.user.favourites.length || fieldValue.some((id, i) => id !== req.user.favourites[i].toHexString());
         }
+        if (field === 'birthday') return (new Date(fieldValue)).toISOString() !== req.user.birthday.toISOString();
         return fieldValue !== req.user[field];
     });
 }
