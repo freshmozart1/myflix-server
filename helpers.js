@@ -174,21 +174,25 @@ async function _createDocument(req, res, collection) {
     try {
         validationResult(req).throw();
         const data = matchedData(req);
-        if (collection.modelName === 'user') {
-            data.password = users.hashPassword(data.password);
-            data.birthday = data.birthday ? data.birthday : null;
-            data.favourites = data.favourites ? data.favourites : null;
-        } else if (collection.modelName === 'movie') {
-            data.imagePath = data.imagePath ? data.imagePath : null;
-        } else if (collection.modelName === 'genre') {
-            data.description = data.description ? data.description : null;
-        } else if (collection.modelName === 'director') {
-            data.deathday = data.deathday ? data.deathday : null;
-            data.biography = data.biography ? data.biography : null;
-        } else {
-            throw new Error('Unknown collection.');
+        switch (collection.modelName) {
+            case 'user':
+                data.password = users.hashPassword(data.password);
+                data.birthday = data.birthday ? data.birthday : null;
+                data.favourites = data.favourites ? data.favourites : null;
+                break;
+            case 'movie':
+                data.imagePath = data.imagePath ? data.imagePath : null;
+                break;
+            case 'genre':
+                break;
+            case 'director':
+                data.deathday = data.deathday ? data.deathday : null;
+                data.biography = data.biography ? data.biography : null;
+                break;
+            default:
+                throw new Error('Unknown collection.');
         }
-        collection.create(data);
+        await collection.create(data);
         res.status(201).end(collection.modelName.charAt(0).toUpperCase() + collection.modelName.slice(1) + ' was created.');
     } catch (e) {
         if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
