@@ -175,6 +175,9 @@ async function _getDocuments(req, res, collection) {
                 const movieList = await query.populate('genre').populate('director');
                 return movieList.length === 0 ? res.status(404).end('No movies found.') : res.status(200).json(movieList);
             }
+        } else if (collection.modelName === 'user') {
+            const user = await collection.findOne({username: data.username}).select('-password -email -birthday -__v').populate({path: 'favourites', select: '-__v', populate: {path: 'genre director', select: '-__v'}});
+            return user ? res.status(200).json(user) : res.status(404).end('User not found.');
         } else if (data.name) {
             const document = await collection.findOne({name: data.name});
             return document ? res.status(200).json(document) : res.status(404).end(data.name + ' was not found.');

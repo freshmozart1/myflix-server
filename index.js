@@ -39,6 +39,17 @@ app.use(express.json());
 auth(app);
 require('./passport.js');
 
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/documentation.html');
+});
+
+app.get('/users/:username', [
+    param('username', 'Username is required').exists().bail({level: 'request'}),
+    checkExact([], {message: 'Request contains unknown fields.'})
+], (req, res) => {
+    _getDocuments(req, res, users);
+});
+
 /**
  * @api {get} /directors/:name?limit Get all, a limited number or a specific director by name
  * @api {get} /genres/:name?limit Get all, a limited number or a specific genre by name
