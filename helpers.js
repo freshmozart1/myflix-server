@@ -121,6 +121,19 @@ function _validateDirectorName(request) {
     });
 }
 
+function _validateGenreName(request) {
+    return request('name').custom(async name => {
+        if (name.length < 3) return Promise.reject('The name must be at least 3 characters long.');
+        try {
+            const genreExists = await genres.exists({ name });
+            if ((request === body && genreExists) || (request === param && !genreExists)) return Promise.reject(`The genre '${name}' ${genreExists ? 'already exists' : 'does not exist'} in the database.`);
+        } catch (e) {
+            return Promise.reject('Database error: ' + e);
+        }
+        return true;
+    });
+}
+
 /**
  * This helper function is a express-validator. If the request parameter is the body section
  * of a request, it checks if a movie exists in the database and if it does,
@@ -209,6 +222,13 @@ function _dynamicRouteValidation(req, res, next) {
             _valiDate(body, 'deathday', 'Deathday is not a valid date.').bail({level: 'request'}).optional({values: 'falsy'}),
             body('biography', 'Biography is required').notEmpty().bail({level: 'request'}),
             body('biography', 'Biography must be a string').isString().bail({level: 'request'})
+        ],
+        '/genres': [
+            body('name', 'The name is required').notEmpty().bail({level: 'request'}),
+            body('name', 'The name must be a string').isString().bail({level: 'request'}),
+            _validateGenreName(body).bail({level: 'request'}),
+            body('description', 'The description is required').notEmpty().bail({level: 'request'}),
+            body('description', 'The description must be a string').isString().bail({level: 'request'})
         ],
         '/movies': [
             body('title', 'The title is required').notEmpty().bail({level: 'request'}),
