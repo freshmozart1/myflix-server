@@ -13,13 +13,21 @@ const mongoose = require('mongoose'),
  * @param {String} field The field to check
  * @returns {ValidationChain}
  */
-function _validateFieldUnchanged(request, field) {
+function _validateUserFieldChanged(request, field) {
     return request(field, field + ' is the same as the current ' + field + '.').custom((fieldValue, { req }) => {
         if (field === 'password') return !req.user.validatePassword(fieldValue);
         if (field === 'favourites') {
             return fieldValue.length !== req.user.favourites.length || fieldValue.some((id, i) => id !== req.user.favourites[i].toHexString());
         }
-        if (field === 'birthday') return (new Date(fieldValue)).toISOString() !== req.user.birthday.toISOString();
+        if (field === 'birthday') {
+            if ((req.user.birthday === null && fieldValue !== null) || (fieldValue === null && req.user.birthday !== null)) {
+                return true;
+            }
+            if (req.user.birthday === null && fieldValue === null) {
+                return false;
+            }
+            return (new Date(fieldValue)).toISOString() !== req.user.birthday.toISOString()
+        }
         return fieldValue !== req.user[field];
     });
 }
@@ -274,7 +282,7 @@ function _dynamicRouteValidation(req, res, next) {
 }
 
 module.exports = {
-    _validateFieldUnchanged,
+    _validateUserFieldChanged,
     _validateIdInCollection,
     _valiDate,
     _checkBodyEmpty,
