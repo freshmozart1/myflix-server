@@ -154,6 +154,10 @@ app.patch('/users/:username', [
     }
 });
 
+app.get('/test', (req, res) => {
+    res.status(200).end(movies.modelName);
+});
+
 app.use(methodOverride());
 app.use((err, _, res, next) => {
     console.error(err.stack);
