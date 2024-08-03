@@ -7,13 +7,13 @@ const express = require('express'),
     {param, matchedData, validationResult, body, checkExact, query} = require('express-validator'),
     {
         _validateUserFieldChanged,
-        _validateIdInCollection,
         _valiDate,
         _checkBodyEmpty,
         _validateUsername,
         _getDocuments,
         _createDocument,
-        _dynamicRouteValidation
+        _dynamicRouteValidation,
+        _validateFavourites
     } = require('./helpers.js'),
     models = require('./models.js'),
     auth = require('./auth.js'),
@@ -123,8 +123,8 @@ app.patch('/users/:username', [
     _validateUserFieldChanged(body, 'password').bail({level: 'request'}).optional({values: 'falsy'}),
     _validateUserFieldChanged(body, 'birthday').bail({level: 'request'}).optional({values: 'falsy'}),
     _valiDate(body, 'birthday', 'Birthday is not a vaild date').bail({level: 'request'}).optional({values: 'undefined'}),
-    _validateUserFieldChanged(body, 'favourites').bail({level: 'request'}).optional({values: 'falsy'}),
-    _validateIdInCollection(body, 'favourites', movies, 'Invalid movie ID in favourites.').bail({level: 'request'}).optional({values: 'falsy'}),
+    _validateUserFieldChanged(body, 'favourites').bail({level: 'request'}).optional(),
+    _validateFavourites().optional(),
     checkExact([], {message: 'Request body contains unknown fields.'})
 ], async (req, res) => {
     try {

@@ -17,15 +17,13 @@ function _validateUserFieldChanged(request, field) {
     return request(field, field + ' is the same as the current ' + field + '.').custom((fieldValue, { req }) => {
         if (field === 'password') return !req.user.validatePassword(fieldValue);
         if (field === 'favourites') {
+            if ((req.user.favourites === null && fieldValue !== null) || (fieldValue === null && req.user.favourites !== null)) return true;
+            if (req.user.favourites === null && fieldValue === null) return false;
             return fieldValue.length !== req.user.favourites.length || fieldValue.some((id, i) => id !== req.user.favourites[i].toHexString());
         }
         if (field === 'birthday') {
-            if ((req.user.birthday === null && fieldValue !== null) || (fieldValue === null && req.user.birthday !== null)) {
-                return true;
-            }
-            if (req.user.birthday === null && fieldValue === null) {
-                return false;
-            }
+            if ((req.user.birthday === null && fieldValue !== null) || (fieldValue === null && req.user.birthday !== null)) return true;
+            if (req.user.birthday === null && fieldValue === null) return false;
             return (new Date(fieldValue)).toISOString() !== req.user.birthday.toISOString()
         }
         return fieldValue !== req.user[field];
@@ -222,6 +220,17 @@ async function _createDocument(req, res, collection) {
     }
 }
 
+function _validateFavourites() {
+    return body('favourites').custom(async favourites => {
+        if(favourites === null) return true;
+        if (!Array.isArray(favourites) || favourites.length === 0) return Promise.reject('Favourites must either be null or an array of movie ids.');
+        for (const id of favourites) {
+            if (!mongoose.Types.ObjectId.isValid(id) || ! await movies.findById(id)) return Promise.reject('Invalid movie ID in favourites.');
+        }
+        return true;
+    });
+}
+
 function _dynamicRouteValidation(req, res, next) {
     const validationChain = {
         '/directors': [
@@ -258,8 +267,7 @@ function _dynamicRouteValidation(req, res, next) {
             body('email', 'Email does not appear to be valid').isEmail().normalizeEmail().bail({level: 'request'}),
             body('password', 'Password is required').notEmpty().bail({level: 'request'}),
             _valiDate(body, 'birthday', 'Birthday is not a valid date.').bail({level: 'request'}).optional({values: 'falsy'}),
-            body('favourites', 'Favourites must be an non empty array').isArray({ min: 1 }).bail({level: 'request'}).optional({ values: 'falsy' }),
-            _validateIdInCollection(body, 'favourites', movies, 'Invalid movie ID in favourites.').bail({level: 'request'}).optional({values: 'falsy'})
+            _validateFavourites().bail({level: 'request'}).optional({values: 'falsy'})
         ]
     }[req.path];
     if (!validationChain) return next();
@@ -291,5 +299,6 @@ module.exports = {
     _validateMovieTitle,
     _getDocuments,
     _createDocument,
+    _validateFavourites,
     _dynamicRouteValidation
 };
