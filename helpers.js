@@ -59,7 +59,7 @@ function _validateIdInCollection(request, field, collection, errorMessage) {
  */
 function _valiDate(request, field, errorMessage) { // This is a very funny name!
     return request(field, errorMessage).custom(value => {
-        return isValid(parseISO(value));
+        return value === null ? true : isValid(parseISO(value));
     });
 }
 
@@ -219,6 +219,7 @@ function _dynamicRouteValidation(req, res, next) {
         '/directors': [
             body('name', 'The name is required').notEmpty().bail({level: 'request'}),
             _validateDirectorName(body).bail({level: 'request'}),
+            body('birthday', 'Birthday is required').notEmpty().bail({level: 'request'}),
             _valiDate(body, 'birthday', 'Birthday is not a valid date.').bail({level: 'request'}),
             _valiDate(body, 'deathday', 'Deathday is not a valid date.').bail({level: 'request'}).optional({values: 'falsy'}),
             body('biography', 'Biography is required').notEmpty().bail({level: 'request'}),
