@@ -141,11 +141,11 @@ function _validateMovieTitle(request) {
     });
 }
 
-async function _getDocuments(req, res, collection, identifier) {
+async function _getDocuments(req, res, collection) {
     try {
         validationResult(req).throw();
         const data = matchedData(req);
-        if (identifier === 'movies') {
+        if (collection.modelName === 'movie') {
             if (data.title) {
                 const movie = await collection.findOne({title: data.title}).populate('genre').populate('director');
                 return movie ? res.status(200).json(movie) : res.status(404).end('Movie not found.');
@@ -162,7 +162,7 @@ async function _getDocuments(req, res, collection, identifier) {
             let query = collection.find();
             if (data.limit) query = query.limit(parseInt(data.limit));
             const documentList = await query;
-            return documentList.length === 0 ? res.status(404).end(`No ${identifier} found.`) : res.status(200).json(documentList);
+            return documentList.length === 0 ? res.status(404).end(`No ${collection.modelName} found.`) : res.status(200).json(documentList);
         }
     } catch (e) {
         if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
@@ -189,7 +189,7 @@ async function _createDocument(req, res, collection) {
             throw new Error('Unknown collection.');
         }
         collection.create(data);
-        res.status(201).end(collection.modelName + ' was created.');
+        res.status(201).end(collection.modelName.charAt(0).toUpperCase() + collection.modelName.slice(1) + ' was created.');
     } catch (e) {
         if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
         return res.status(500).end('Database error: ' + e);

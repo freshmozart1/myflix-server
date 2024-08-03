@@ -53,12 +53,12 @@ app.get(['/directors/:name?', '/genres/:name?', '/movies/:title?'], [
 ], (req, res) => {
     const path = req.path.split('/')[1];
     if (path === 'directors') {
-        _getDocuments(req, res, directors, 'directors');
+        _getDocuments(req, res, directors);
     } else if (path === 'genres') {
-        _getDocuments(req, res, genres, 'genres');
+        _getDocuments(req, res, genres);
     }
     else if (path === 'movies') {
-        _getDocuments(req, res, movies, 'movies');
+        _getDocuments(req, res, movies);
     }
 });
 
