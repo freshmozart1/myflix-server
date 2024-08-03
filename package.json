@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"
+    "start": "clear && CONNECTION_URI='mongodb+srv://freshmozart:eLxjHJFD9TMWLyg2@myflixcluster.55bnxmn.mongodb.net/myFlixDatabase?retryWrites=true&w=majority&appName=myFlixCluster' JWT_SECRET='XqH2!ghLU?p@~puk>a9kjpBJ=u,txF4t' nodemon index.js"
   },
   "keywords": [],
   "author": "",
@@ -14,12 +14,14 @@
     "@eslint/js": "^9.5.0",
     "eslint": "^9.5.0",
     "globals": "^15.6.0",
+    "nodemon": "^3.1.4",
     "stylelint": "^16.6.1",
     "stylelint-config-standard": "^36.0.1"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
+    "date-fns": "^3.6.0",
     "express": "^4.19.2",
     "express-validator": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
