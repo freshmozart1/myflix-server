@@ -40,6 +40,7 @@ auth(app);
 require('./passport.js');
 
 /**
+ * @api {get} / Get the API documentation
  * @api {get} /directors/:name?limit Get all, a limited number or a specific director by name
  * @api {get} /genres/:name?limit Get all, a limited number or a specific genre by name
  * @api {get} /movies/:title?limit Get all, a limited number or a specific movie by title
