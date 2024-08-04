@@ -92,13 +92,19 @@ app.post(['/directors', '/genres', '/movies'], [
     passport.authenticate('jwt', {session: false}),
     _checkBodyEmpty,
     _dynamicRouteValidation
-], (req, res) => {
-    if (req.path === '/directors') {
-        _createDocument(req, res, directors);
-    } else if (req.path === '/genres') {
-        _createDocument(req, res, genres);
-    } else if (req.path === '/movies') {
-        _createDocument(req, res, movies);
+], (req, res, next) => {
+    switch (req.path.split('/')[1]) {
+        case 'directors':
+            _createDocument(req, res, directors);
+            break;
+        case 'genres':
+            _createDocument(req, res, genres);
+            break;
+        case 'movies':
+            _createDocument(req, res, movies);
+            break;
+        default:
+            next();
     }
 });
 
