@@ -40,42 +40,35 @@ auth(app);
 require('./passport.js');
 
 /**
- * @api {get} / Get documentation
- */
-app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/documentation.html');
-});
-
-/**
- * @api {get} /users/:username Get all publicly available information about a user by username
- */
-app.get('/users/:username', [
-    param('username', 'Username is required').exists().bail({level: 'request'}),
-    checkExact([], {message: 'Request contains unknown fields.'})
-], (req, res) => {
-    _getDocuments(req, res, users);
-});
-
-/**
  * @api {get} /directors/:name?limit Get all, a limited number or a specific director by name
  * @api {get} /genres/:name?limit Get all, a limited number or a specific genre by name
  * @api {get} /movies/:title?limit Get all, a limited number or a specific movie by title
+ * @api {get} /users/:username Get all publicly available information about a user by username
  */
 
-app.get(['/directors/:name?', '/genres/:name?', '/movies/:title?'], [
+app.get(['/', '/directors/:name?', '/genres/:name?', '/movies/:title?', '/users/:username'], [
+    param('username'),
     param('name').optional({values: 'falsy'}),
     param('title').optional({values: 'falsy'}),
     query('limit').optional({values: 'falsy'}).isInt({gt: 0}),
     checkExact([], {message: 'Request contains unknown fields.'})
-], (req, res) => {
-    const path = req.path.split('/')[1];
-    if (path === 'directors') {
-        _getDocuments(req, res, directors);
-    } else if (path === 'genres') {
-        _getDocuments(req, res, genres);
-    }
-    else if (path === 'movies') {
-        _getDocuments(req, res, movies);
+], (req, res, next) => {
+    if (req.path === '/') return res.sendFile(__dirname + '/documentation.html');
+    switch (req.path.split('/')[1]) {
+        case 'directors':
+            _getDocuments(req, res, directors);
+            break;
+        case 'genres':
+            _getDocuments(req, res, genres);
+            break;
+        case 'movies':
+            _getDocuments(req, res, movies);
+            break;
+        case 'users':
+            _getDocuments(req, res, users);
+            break;
+        default:
+            next();
     }
 });
 
