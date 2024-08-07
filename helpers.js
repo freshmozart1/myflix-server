@@ -153,7 +153,7 @@ function _validateMovieTitle(request) {
     return request('title').custom(async (title) => {
         try {
             const movieExists = await movies.exists({ title });
-            if((request === body && movieExists) || (request === param && !movieExists)) return Promise.reject(`The movie '${title}' ${movieExists ? 'already exists' : 'does not exist'} in the database.`);
+            if ((request === body && movieExists) || (request === param && !movieExists)) return Promise.reject(`The movie '${title}' ${movieExists ? 'already exists' : 'does not exist'} in the database.`);
         } catch (e) {
             return Promise.reject('Database error: ' + e);
         }
@@ -167,7 +167,7 @@ async function _getDocuments(req, res, collection) {
         const data = matchedData(req);
         if (collection.modelName === 'movie') {
             if (data.title) {
-                const movie = await collection.findOne({title: data.title}).populate('genre').populate('director');
+                const movie = await collection.findOne({ title: data.title }).populate('genre').populate('director');
                 return movie ? res.status(200).json(movie) : res.status(404).end('Movie not found.');
             } else {
                 let query = collection.find();
@@ -176,10 +176,10 @@ async function _getDocuments(req, res, collection) {
                 return movieList.length === 0 ? res.status(404).end('No movies found.') : res.status(200).json(movieList);
             }
         } else if (collection.modelName === 'user') {
-            const user = await collection.findOne({username: data.username}).select('-password -email -birthday -__v').populate({path: 'favourites', select: '-__v', populate: {path: 'genre director', select: '-__v'}});
+            const user = await collection.findOne({ username: data.username }).select('-password -email -birthday -__v').populate({ path: 'favourites', select: '-__v', populate: { path: 'genre director', select: '-__v' } });
             return user ? res.status(200).json(user) : res.status(404).end('User not found.');
         } else if (data.name) {
-            const document = await collection.findOne({name: data.name});
+            const document = await collection.findOne({ name: data.name });
             return document ? res.status(200).json(document) : res.status(404).end(data.name + ' was not found.');
         } else {
             let query = collection.find();
@@ -216,7 +216,7 @@ async function _createDocument(req, res, collection) {
                 throw new Error('Unknown collection.');
         }
         await collection.create(data);
-        res.status(201).end(collection.modelName.charAt(0).toUpperCase() + collection.modelName.slice(1) + ' was created.');
+        res.status(201).json(data);
     } catch (e) {
         if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
         return res.status(500).end('Database error: ' + e);
@@ -225,7 +225,7 @@ async function _createDocument(req, res, collection) {
 
 function _validateFavourites() {
     return body('favourites').custom(async favourites => {
-        if(favourites === null) return true;
+        if (favourites === null) return true;
         if (!Array.isArray(favourites) || favourites.length === 0) return Promise.reject('Favourites must either be null or an array of movie ids.');
         for (const id of favourites) {
             if (!mongoose.Types.ObjectId.isValid(id) || ! await movies.findById(id)) return Promise.reject('Invalid movie ID in favourites.');
@@ -237,44 +237,44 @@ function _validateFavourites() {
 function _dynamicRouteValidation(req, res, next) {
     const validationChain = {
         '/directors': [
-            body('name', 'The name is required').notEmpty().bail({level: 'request'}),
-            _validateDirectorName(body).bail({level: 'request'}),
-            body('birthday', 'Birthday is required').notEmpty().bail({level: 'request'}),
-            _valiDate(body, 'birthday', 'Birthday is not a valid date.').bail({level: 'request'}),
-            _valiDate(body, 'deathday', 'Deathday is not a valid date.').bail({level: 'request'}).optional({values: 'falsy'}),
-            body('biography', 'Biography is required').notEmpty().bail({level: 'request'}),
-            body('biography', 'Biography must be a string').isString().bail({level: 'request'})
+            body('name', 'The name is required').notEmpty().bail({ level: 'request' }),
+            _validateDirectorName(body).bail({ level: 'request' }),
+            body('birthday', 'Birthday is required').notEmpty().bail({ level: 'request' }),
+            _valiDate(body, 'birthday', 'Birthday is not a valid date.').bail({ level: 'request' }),
+            _valiDate(body, 'deathday', 'Deathday is not a valid date.').bail({ level: 'request' }).optional({ values: 'falsy' }),
+            body('biography', 'Biography is required').notEmpty().bail({ level: 'request' }),
+            body('biography', 'Biography must be a string').isString().bail({ level: 'request' })
         ],
         '/genres': [
-            body('name', 'The name is required').notEmpty().bail({level: 'request'}),
-            body('name', 'The name must be a string').isString().bail({level: 'request'}),
-            _validateGenreName(body).bail({level: 'request'}),
-            body('description', 'The description is required').notEmpty().bail({level: 'request'}),
-            body('description', 'The description must be a string').isString().bail({level: 'request'})
+            body('name', 'The name is required').notEmpty().bail({ level: 'request' }),
+            body('name', 'The name must be a string').isString().bail({ level: 'request' }),
+            _validateGenreName(body).bail({ level: 'request' }),
+            body('description', 'The description is required').notEmpty().bail({ level: 'request' }),
+            body('description', 'The description must be a string').isString().bail({ level: 'request' })
         ],
         '/movies': [
-            body('title', 'The title is required').notEmpty().bail({level: 'request'}),
-            body('title', 'The title must be a string').isString().bail({level: 'request'}),
-            body('description', 'The description is required').notEmpty().bail({level: 'request'}),
-            body('description', 'The description must be a string').isString().bail({level: 'request'}),
-            body('genre', 'A genre ID is required').notEmpty().bail({level: 'request'}),
-            body('director', 'A director ID is required').notEmpty().bail({level: 'request'}),
-            body('imagePath').optional({values: 'falsy'}),
+            body('title', 'The title is required').notEmpty().bail({ level: 'request' }),
+            body('title', 'The title must be a string').isString().bail({ level: 'request' }),
+            body('description', 'The description is required').notEmpty().bail({ level: 'request' }),
+            body('description', 'The description must be a string').isString().bail({ level: 'request' }),
+            body('genre', 'A genre ID is required').notEmpty().bail({ level: 'request' }),
+            body('director', 'A director ID is required').notEmpty().bail({ level: 'request' }),
+            body('imagePath').optional({ values: 'falsy' }),
             _validateMovieTitle(body).bail({ level: 'request' }),
-            _validateIdInCollection(body, 'genre', genres, 'Genre not found in database.').bail({level: 'request'}),
-            _validateIdInCollection(body, 'director', directors, 'Director not found in database.').bail({level: 'request'})
+            _validateIdInCollection(body, 'genre', genres, 'Genre not found in database.').bail({ level: 'request' }),
+            _validateIdInCollection(body, 'director', directors, 'Director not found in database.').bail({ level: 'request' })
         ],
         '/users': [
             _validateUsername(body).bail({ level: 'request' }),
-            body('email', 'Email is required').notEmpty().bail({level: 'request'}),
-            body('email', 'Email does not appear to be valid').isEmail().normalizeEmail().bail({level: 'request'}),
-            body('password', 'Password is required').notEmpty().bail({level: 'request'}),
-            _valiDate(body, 'birthday', 'Birthday is not a valid date.').bail({level: 'request'}).optional({values: 'falsy'}),
-            _validateFavourites().bail({level: 'request'}).optional({values: 'falsy'})
+            body('email', 'Email is required').notEmpty().bail({ level: 'request' }),
+            body('email', 'Email does not appear to be valid').isEmail().normalizeEmail().bail({ level: 'request' }),
+            body('password', 'Password is required').notEmpty().bail({ level: 'request' }),
+            _valiDate(body, 'birthday', 'Birthday is not a valid date.').bail({ level: 'request' }).optional({ values: 'falsy' }),
+            _validateFavourites().bail({ level: 'request' }).optional({ values: 'falsy' })
         ]
     }[req.path];
     if (!validationChain) return next();
-    validationChain.push(checkExact([], {message: 'Request contains unknown fields.'}));
+    validationChain.push(checkExact([], { message: 'Request contains unknown fields.' }));
     return validationChain.reduce((acc, fn) => { //This line will build a chain of promises
         return acc.then(() => { //If the last promise in the chain resolves...
             return new Promise((resolve, reject) => { //... this line will add a new Promise to the chain.
