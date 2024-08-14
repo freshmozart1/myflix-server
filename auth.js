@@ -1,9 +1,11 @@
 const jwt = require('jsonwebtoken'),
-    passport = require('passport');
+    passport = require('passport'),
+    cookieParser = require('cookie-parser');
 
 require('./passport.js');
 
 module.exports = (router) => {
+    router.use(cookieParser());
     router.post('/login', (req, res) => {
         passport.authenticate('local', { session: false }, (error, user) => {
             if (error || !user) {
@@ -16,14 +18,18 @@ module.exports = (router) => {
                 if (error) {
                     res.end(error);
                 } else {
-                    const token = (user => {
-                        return jwt.sign(user, process.env.JWT_SECRET, {
-                            subject: user.username,
-                            expiresIn: '7d',
-                            algorithm: 'HS256'
-                        });
-                    })(user.toJSON());
-                    return res.json({ user, token }).end();
+                    const token = jwt.sign(user.toJSON(), process.env.JWT_SECRET, {
+                        subject: user.username,
+                        expiresIn: '7d',
+                        algorithm: 'HS256'
+                    })
+                    res.cookie('token', token, {
+                        httpOnly: true,
+                        secure: true,
+                        //sameSite: 'strict',
+                        maxAge: 7 * 24 * 60 * 60 * 1000
+                    });
+                    return res.status(200).json({ user, token }).end();
                 }
             });
         })(req, res);
