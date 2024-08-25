@@ -13,7 +13,8 @@ const express = require('express'),
         _getDocuments,
         _createDocument,
         _dynamicRouteValidation,
-        _validateFavourites
+        _validateFavourites,
+        _validateIdInCollection
     } = require('./helpers.js'),
     models = require('./models.js'),
     auth = require('./auth.js'),
@@ -155,6 +156,45 @@ app.patch('/users/:username', [
         const data = matchedData(req);
         if (data.password) data.password = users.hashPassword(data.password);
         if ((await users.updateOne({ username: req.params.username }, data)).modifiedCount === 0 ) return res.status(404).end(req.params.username + ' was not found.');
+        res.status(200).end('Successfully updated user ' + req.params.username);
+    } catch (e) {
+        if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
+        res.status(500).end('Database error: ' + e);
+    }
+});
+
+app.post('/users/:username/favourites/:id', [
+    passport.authenticate('jwt', { session: false }),
+    _validateUsername(param).bail({ level: 'request' }),
+    param('id').isMongoId().bail({ level: 'request' }),
+    param('username', 'You are not allowed to update this user!').custom((value, { req }) => {
+        return value === req.user.username;
+    }).bail({ level: 'request' }),
+    _validateIdInCollection(param, 'id', movies, 'Movie not in database').bail({ level: 'request' }),
+], async (req, res) => {
+    try {
+        validationResult(req).throw();
+        const data = matchedData(req);
+        if ((await users.updateOne({ username: req.params.username }, { $addToSet: { favourites: data.id } })).modifiedCount === 0) return res.status(404).end(req.params.username + ' was not found.');
+        res.status(200).end('Successfully updated user ' + req.params.username);
+    } catch (e) {
+        if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
+        res.status(500).end('Database error: ' + e);
+    }
+});
+
+app.delete('/users/:username/favourites/:id', [
+    passport.authenticate('jwt', { session: false }),
+    _validateUsername(param).bail({ level: 'request' }),
+    param('id').isMongoId().bail({ level: 'request' }),
+    param('username', 'You are not allowed to update this user!').custom((value, { req }) => {
+        return value === req.user.username;
+    }).bail({ level: 'request' })
+], async (req, res) => {
+    try {
+        validationResult(req).throw();
+        const data = matchedData(req);
+        if ((await users.updateOne({ username: req.params.username }, { $pull: { favourites: data.id } })).modifiedCount === 0) return res.status(404).end(data.id + ' was not found.');
         res.status(200).end('Successfully updated user ' + req.params.username);
     } catch (e) {
         if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
