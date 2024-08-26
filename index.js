@@ -152,7 +152,7 @@ app.patch('/users/:username', [
         validationResult(req).throw();
         const data = matchedData(req);
         if (data.password) data.password = users.hashPassword(data.password);
-        res.status(200).json(await users.findOneAndUpdate({username: data.username}, data, {new: true})); //TODO: #9 Return the updated user
+        res.status(200).json(await users.findOneAndUpdate({username: data.username}, data, {new: true})); //TODO: #10 Return the updated user
     } catch (e) {
         if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
         res.status(500).end('Database error: ' + e);
