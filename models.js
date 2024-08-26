@@ -21,7 +21,6 @@ let userSchema = mongoose.Schema({
  * Generates a hashed password
  * @param {*} password the password to be hashed
  * @returns  the hashed password
- * @todo replace snychronous bcrypt.hash with asynchronous bcrypt.hash to avoid blocking the event loop
  */
 userSchema.statics.hashPassword = (password)  => {
     return bcrypt.hashSync(password, 10);

@@ -26,10 +26,7 @@ const express = require('express'),
 
 mongoose.connect(process.env.CONNECTION_URI);
 
-/**
- * @todo Fix this. CORS should not allow access from everywhere.
- */
-app.use(cors());
+app.use(cors()); //TODO: #8 Limit CORS
 app.use(morgan('common'));
 app.use(express.static(__dirname));
 app.use(express.urlencoded({
