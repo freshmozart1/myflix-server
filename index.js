@@ -152,8 +152,7 @@ app.patch('/users/:username', [
         validationResult(req).throw();
         const data = matchedData(req);
         if (data.password) data.password = users.hashPassword(data.password);
-        if ((await users.updateOne({ username: req.params.username }, data)).modifiedCount === 0 ) return res.status(404).end(req.params.username + ' was not found.');
-        res.status(200).end('Successfully updated user ' + req.params.username);
+        res.status(200).json(await users.findOneAndUpdate({username: data.username}, data, {new: true}));
     } catch (e) {
         if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
         res.status(500).end('Database error: ' + e);
@@ -172,8 +171,7 @@ app.post('/users/:username/favourites/:id', [
     try {
         validationResult(req).throw();
         const data = matchedData(req);
-        if ((await users.updateOne({ username: req.params.username }, { $addToSet: { favourites: data.id } })).modifiedCount === 0) return res.status(404).end(req.params.username + ' was not found.');
-        res.status(200).end('Successfully updated user ' + req.params.username);
+        res.status(200).json((await users.findOneAndUpdate({ username: data.username }, { $addToSet: { favourites: data.id } }, { new: true })).favourites);
     } catch (e) {
         if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
         res.status(500).end('Database error: ' + e);
@@ -191,8 +189,7 @@ app.delete('/users/:username/favourites/:id', [
     try {
         validationResult(req).throw();
         const data = matchedData(req);
-        if ((await users.updateOne({ username: req.params.username }, { $pull: { favourites: data.id } })).modifiedCount === 0) return res.status(404).end(data.id + ' was not found.');
-        res.status(200).end('Successfully updated user ' + req.params.username);
+        res.status(200).json((await users.findOneAndUpdate({ username: data.username }, { $pull: { favourites: data.id } }, { new: true })).favourites);
     } catch (e) {
         if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
         res.status(500).end('Database error: ' + e);
