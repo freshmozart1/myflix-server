@@ -184,21 +184,29 @@
                             {"password": String}
                         </code>
                     </td>
-                    <td>none</td>
+                    <td>
+                        <code>
+                            {"username": String, "email": String, "password": String, "birthday": Date | null, "favourites": [String, ...] | null}
+                        </code>
+                    </td>
                 </tr>
                 <tr>
                     <td id="postFavourite">/users/:username/favourites/:movieId</td>
                     <td>POST</td>
                     <td>Adds a movie to the user's favourites list.</td>
                     <td>none</td>
-                    <td>none</td>
+                    <td>
+                        <code>
+                            [String, ...]
+                        </code>
+                    </td>
                 </tr>
                 <tr>
                     <td id="delFavourite">/users/:username/favourites/:movieId</td>
                     <td>DEL</td>
                     <td>Removes a movie from the user's favourites list.</td>
                     <td>none</td>
-                    <td>none</td>
+                    <td>[]|[String, ...]</td>
                 </tr>
             </tbody>
         </table>
