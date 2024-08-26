@@ -4,7 +4,7 @@ const express = require('express'),
     methodOverride = require('method-override'),
     passport = require('passport'),
     cors = require('cors'),
-    {param, matchedData, validationResult, body, checkExact, query} = require('express-validator'),
+    { param, matchedData, validationResult, body, checkExact, query } = require('express-validator'),
     {
         _validateUserFieldChanged,
         _valiDate,
@@ -171,7 +171,17 @@ app.post('/users/:username/favourites/:id', [
     try {
         validationResult(req).throw();
         const data = matchedData(req);
-        res.status(200).json((await users.findOneAndUpdate({ username: data.username }, { $addToSet: { favourites: data.id } }, { new: true })).favourites);
+        const user = await users.findOne({ username: data.username });
+        if (user.favourites === null) {
+            user.favourites = [data.id];
+            await user.save();
+        } else if (user.favourites.includes(data.id)) {
+            return res.status(409).end('Movie already in favourites.');
+        } else {
+            user.favourites.push(data.id);
+            await user.save();
+        }
+        res.status(200).json(user.favourites);
     } catch (e) {
         if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
         res.status(500).end('Database error: ' + e);
@@ -189,7 +199,14 @@ app.delete('/users/:username/favourites/:id', [
     try {
         validationResult(req).throw();
         const data = matchedData(req);
-        res.status(200).json((await users.findOneAndUpdate({ username: data.username }, { $pull: { favourites: data.id } }, { new: true })).favourites);
+        const user = await users.findOne({ username: data.username });
+        if (user.favourites === null) return res.status(200).json(null);
+        user.favourites = user.favourites.filter((id) => {
+            return String(id) !== data.id;
+        });
+        if (user.favourites.length === 0) user.favourites = null;
+        await user.save();
+        res.status(200).json(user.favourites);
     } catch (e) {
         if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
         res.status(500).end('Database error: ' + e);
