@@ -133,10 +133,10 @@ app.delete('/users/:username', [
 app.patch('/users/:username', [
     passport.authenticate('jwt', {session: false}),
     _checkBodyEmpty,
-    _validateUsername(param).bail({ level: 'request' }),
-    param('username', 'You are not allowed to update this user!').custom((value, {req}) => { //Change this to oneOf() when super users are implemented.
+    param('username', 'You are not allowed to update this user!').custom((value, {req}) => {
         return value === req.user.username;
-    }).bail({level: 'request'}),
+    }).bail({ level: 'request' }),
+    _validateUsername(param).bail({ level: 'request' }),
     _validateUserFieldChanged(body, 'username').bail({level: 'request'}).optional({values: 'falsy'}),
     _validateUsername(body).bail({ level: 'request' }).optional({values: 'falsy'}),
     _validateUserFieldChanged(body, 'email').bail({level: 'request'}).optional({values: 'falsy'}),
@@ -152,7 +152,7 @@ app.patch('/users/:username', [
         validationResult(req).throw();
         const data = matchedData(req);
         if (data.password) data.password = users.hashPassword(data.password);
-        const user = await users.findOne({ username: data.username });
+        const user = await users.findOne({ username: req.params.username }); //req.params.username must be used, because data.username might be the new username
         for (const key in data) {
             user[key] = data[key];
         }
