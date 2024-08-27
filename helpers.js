@@ -7,6 +7,7 @@ const mongoose = require('mongoose'),
     movies = models.movie,
     users = models.user;
 
+//todo #12
 /**
  * This helper function is a express-validator that checks if a field of a request is the same as the current data stored for a user.
  * @param {*} request Where to look for the field in the request
