@@ -213,10 +213,10 @@ async function _createDocument(req, res, collection) {
                     data.imagePath = `posters/${filename}`;
                     data.thumbnailPath = `thumbnails/${filename}`;
                     fs.writeFile(data.imagePath, Buffer.from(data.image.replace(/^data:image\/\w+;base64,/, ''), 'base64'), (err) => {
-                        err ? console.error(err) : console.log('Poster saved.');
+                        if (err) console.error(err);
                     });
                     fs.writeFile(data.thumbnailPath, Buffer.from(data.thumbnail.replace(/^data:image\/\w+;base64,/, ''), 'base64'), (err) => {
-                        err ? console.error(err) : console.log('Thumbnail saved.');
+                        if (err) console.error(err);
                     });
                     delete data.image;
                     delete data.thumbnail;
