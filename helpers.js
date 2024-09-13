@@ -1,6 +1,7 @@
 const mongoose = require('mongoose'),
     { body, param, matchedData, validationResult, checkExact } = require('express-validator'),
     { parseISO, isValid } = require('date-fns'),
+    fs = require('fs'),
     models = require('./models'),
     directors = models.director,
     genres = models.genre,
@@ -205,7 +206,21 @@ async function _createDocument(req, res, collection) {
                 data.favourites = data.favourites ? data.favourites : null;
                 break;
             case 'movie':
-                data.imagePath = data.imagePath ? data.imagePath : null;
+                data.imagePath = null;
+                data.thumbnailPath = null;
+                if (data.image && data.thumbnail) {
+                    const filename = `${data.title.toLowerCase().replace(/ /g, '_').replace(/ß/g, 'ss').replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')}.png`;
+                    data.imagePath = `posters/${filename}`;
+                    data.thumbnailPath = `thumbnails/${filename}`;
+                    fs.writeFile(data.imagePath, Buffer.from(data.image.replace(/^data:image\/\w+;base64,/, ''), 'base64'), (err) => {
+                        if (err) console.error(err);
+                    });
+                    fs.writeFile(data.thumbnailPath, Buffer.from(data.thumbnail.replace(/^data:image\/\w+;base64,/, ''), 'base64'), (err) => {
+                        if (err) console.error(err);
+                    });
+                    delete data.image;
+                    delete data.thumbnail;
+                }
                 break;
             case 'genre':
                 break;
@@ -260,7 +275,8 @@ function _dynamicRouteValidation(req, res, next) {
             body('description', 'The description must be a string').isString().bail({ level: 'request' }),
             body('genre', 'A genre ID is required').notEmpty().bail({ level: 'request' }),
             body('director', 'A director ID is required').notEmpty().bail({ level: 'request' }),
-            body('imagePath').optional({ values: 'falsy' }),
+            body('image').optional({ values: 'falsy' }),
+            body('thumbnail').optional({ values: 'falsy' }),
             _validateMovieTitle(body).bail({ level: 'request' }),
             _validateIdInCollection(body, 'genre', genres, 'Genre not found in database.').bail({ level: 'request' }),
             _validateIdInCollection(body, 'director', directors, 'Director not found in database.').bail({ level: 'request' })
