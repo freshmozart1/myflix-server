@@ -32,7 +32,7 @@ app.use(express.static(__dirname));
 app.use(express.urlencoded({
     extended: true
 }));
-app.use(express.json());
+app.use(express.json({limit: '10mb'}));
 
 auth(app);
 require('./passport.js');

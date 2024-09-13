@@ -6,7 +6,8 @@ let movieSchema = mongoose.Schema({
     description: { type: String, required: true },
     genre: { type: mongoose.Schema.Types.ObjectId, ref: 'genre', required: true },
     director: { type: mongoose.Schema.Types.ObjectId, ref: 'director', required: true },
-    imagePath: String
+    imagePath: String,
+    thumbnailPath: String
 });
 
 let userSchema = mongoose.Schema({
