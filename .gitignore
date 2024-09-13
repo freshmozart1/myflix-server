@@ -399,3 +399,4 @@ FodyWeavers.xsd
 
 #custom ignore
 .env
+.DS_Store
