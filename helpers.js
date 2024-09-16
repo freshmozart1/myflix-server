@@ -211,7 +211,7 @@ async function _createDocument(req, res, collection) {
                 if (data.image && data.thumbnail) {
                     const filename = `${data.title.toLowerCase().replace(/ /g, '_').replace(/ß/g, 'ss').replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')}.png`;
                     const client = new S3Client({
-                        region: 'eu-central-1',
+                        region: process.env.S3_REGION,
                         credentials: {
                             accessKeyId: process.env.AWS_ACCESS_KEY_ID,
                             secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
