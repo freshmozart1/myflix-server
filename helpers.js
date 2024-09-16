@@ -1,7 +1,7 @@
 const mongoose = require('mongoose'),
     { body, param, matchedData, validationResult, checkExact } = require('express-validator'),
     { parseISO, isValid } = require('date-fns'),
-    fs = require('fs'),
+    { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3'),
     models = require('./models'),
     directors = models.director,
     genres = models.genre,
@@ -210,14 +210,34 @@ async function _createDocument(req, res, collection) {
                 data.thumbnailPath = null;
                 if (data.image && data.thumbnail) {
                     const filename = `${data.title.toLowerCase().replace(/ /g, '_').replace(/ß/g, 'ss').replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')}.png`;
-                    data.imagePath = `posters/${filename}`;
-                    data.thumbnailPath = `thumbnails/${filename}`;
-                    fs.writeFile(data.imagePath, Buffer.from(data.image.replace(/^data:image\/\w+;base64,/, ''), 'base64'), (err) => {
-                        if (err) console.error(err);
+                    const client = new S3Client({
+                        region: 'eu-central-1',
+                        credentials: {
+                            accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+                            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+                        }
                     });
-                    fs.writeFile(data.thumbnailPath, Buffer.from(data.thumbnail.replace(/^data:image\/\w+;base64,/, ''), 'base64'), (err) => {
-                        if (err) console.error(err);
-                    });
+                    const imageParams = {
+                        Bucket: process.env.S3_BUCKET,
+                        Key: `posters/${filename}`,
+                        Body: Buffer.from(data.image.replace(/^data:image\/\w+;base64,/, ''), 'base64'),
+                        ContentType: 'image/png'
+                    };
+                    const imageResponse = await client.send(new PutObjectCommand(imageParams));
+                    const thumbnailParams = {
+                        Bucket: process.env.S3_BUCKET,
+                        Key: `thumbnails/${filename}`,
+                        Body: Buffer.from(data.thumbnail.replace(/^data:image\/\w+;base64,/, ''), 'base64'),
+                        ContentType: 'image/png'
+                    };
+                    const thumbnailResponse = await client.send(new PutObjectCommand(thumbnailParams));
+                    if (imageResponse.$metadata.httpStatusCode !== 200 || thumbnailResponse.$metadata.httpStatusCode !== 200) {
+                        throw new Error('Image upload failed.');
+                    } else {
+                        data.imagePath = `posters/${filename}`;
+                        data.thumbnailPath = `thumbnails/${filename}`;
+                    }
+                    client.destroy();
                     delete data.image;
                     delete data.thumbnail;
                 }
@@ -234,6 +254,7 @@ async function _createDocument(req, res, collection) {
         await collection.create(data);
         res.status(201).json(data);
     } catch (e) {
+        console.error(e);
         if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
         return res.status(500).end('Database error: ' + e);
     }
