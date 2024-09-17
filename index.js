@@ -53,7 +53,7 @@ app.get(['/', '/directors/:name?', '/genres/:name?', '/movies/:title?', '/users/
     checkExact([], { message: 'Request contains unknown fields.' })
 ], (req, res, next) => {
     if (req.path === '/') return res.sendFile(__dirname + '/documentation.html');
-    switch (req.path.split('/')[1]) { //TODO: #18 Add a GET /users/:username/favourites endpoint
+    switch (req.path.split('/')[1]) {
         case 'directors':
             _getDocuments(req, res, directors);
             break;
