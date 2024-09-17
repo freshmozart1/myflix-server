@@ -32,7 +32,7 @@ app.use(express.static(__dirname));
 app.use(express.urlencoded({
     extended: true
 }));
-app.use(express.json({limit: '10mb'}));
+app.use(express.json({ limit: '10mb' }));
 
 auth(app);
 require('./passport.js');
@@ -45,15 +45,15 @@ require('./passport.js');
  * @api {get} /users/:username Get all publicly available information about a user by username
  */
 
-app.get(['/', '/directors/:name?', '/genres/:name?', '/movies/:title?', '/users/:username'], [
+app.get(['/', '/directors/:name?', '/genres/:name?', '/movies/:title?', '/users/:username', '/users/:username/favourites'], [
     param('username'),
-    param('name').optional({values: 'falsy'}),
-    param('title').optional({values: 'falsy'}),
-    query('limit').optional({values: 'falsy'}).isInt({gt: 0}),
-    checkExact([], {message: 'Request contains unknown fields.'})
+    param('name').optional({ values: 'falsy' }),
+    param('title').optional({ values: 'falsy' }),
+    query('limit').optional({ values: 'falsy' }).isInt({ gt: 0 }),
+    checkExact([], { message: 'Request contains unknown fields.' })
 ], (req, res, next) => {
     if (req.path === '/') return res.sendFile(__dirname + '/documentation.html');
-    switch (req.path.split('/')[1]) {
+    switch (req.path.split('/')[1]) { //TODO: #18 Add a GET /users/:username/favourites endpoint
         case 'directors':
             _getDocuments(req, res, directors);
             break;
@@ -87,7 +87,7 @@ app.post('/users', [
  * @api {post} /movies Create a new movie
  */
 app.post(['/directors', '/genres', '/movies'], [
-    passport.authenticate('jwt', {session: false}),
+    passport.authenticate('jwt', { session: false }),
     _checkBodyEmpty,
     _dynamicRouteValidation
 ], (req, res, next) => {
@@ -110,16 +110,16 @@ app.post(['/directors', '/genres', '/movies'], [
  * @api {delete} /users/:username Delete a user by username
  */
 app.delete('/users/:username', [
-    passport.authenticate('jwt', {session: false}),
+    passport.authenticate('jwt', { session: false }),
     _validateUsername(param).bail({ level: 'request' }),
-    param('username', 'You are not allowed to delete this user!').custom((value, {req}) => {
+    param('username', 'You are not allowed to delete this user!').custom((value, { req }) => {
         return value === req.user.username;
     })
 ], async (req, res) => {
     try {
         validationResult(req).throw();
         const data = matchedData(req);
-        if((await users.deleteOne({username: data.username})).deletedCount === 0) return res.status(404).end(data.username + ' wasn\'t found.');
+        if ((await users.deleteOne({ username: data.username })).deletedCount === 0) return res.status(404).end(data.username + ' wasn\'t found.');
         res.status(200).end(req.params.username + ' was deleted.');
     } catch (e) {
         if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
@@ -131,22 +131,22 @@ app.delete('/users/:username', [
  * @api {patch} /users/:username Update a user by username
  */
 app.patch('/users/:username', [
-    passport.authenticate('jwt', {session: false}),
+    passport.authenticate('jwt', { session: false }),
     _checkBodyEmpty,
-    param('username', 'You are not allowed to update this user!').custom((value, {req}) => {
+    param('username', 'You are not allowed to update this user!').custom((value, { req }) => {
         return value === req.user.username;
     }).bail({ level: 'request' }),
     _validateUsername(param).bail({ level: 'request' }),
-    _validateUserFieldChanged(body, 'username').bail({level: 'request'}).optional({values: 'falsy'}),
-    _validateUsername(body).bail({ level: 'request' }).optional({values: 'falsy'}),
-    _validateUserFieldChanged(body, 'email').bail({level: 'request'}).optional({values: 'falsy'}),
-    body('email', 'Email does not appear to be valid').isEmail().bail({level: 'request'}).normalizeEmail().optional({values: 'falsy'}),
-    _validateUserFieldChanged(body, 'password').bail({level: 'request'}).optional({values: 'falsy'}),
-    _validateUserFieldChanged(body, 'birthday').bail({level: 'request'}).optional({values: 'falsy'}),
-    _valiDate(body, 'birthday', 'Birthday is not a vaild date').bail({level: 'request'}).optional({values: 'undefined'}),
-    _validateUserFieldChanged(body, 'favourites').bail({level: 'request'}).optional(),
+    _validateUserFieldChanged(body, 'username').bail({ level: 'request' }).optional({ values: 'falsy' }),
+    _validateUsername(body).bail({ level: 'request' }).optional({ values: 'falsy' }),
+    _validateUserFieldChanged(body, 'email').bail({ level: 'request' }).optional({ values: 'falsy' }),
+    body('email', 'Email does not appear to be valid').isEmail().bail({ level: 'request' }).normalizeEmail().optional({ values: 'falsy' }),
+    _validateUserFieldChanged(body, 'password').bail({ level: 'request' }).optional({ values: 'falsy' }),
+    _validateUserFieldChanged(body, 'birthday').bail({ level: 'request' }).optional({ values: 'falsy' }),
+    _valiDate(body, 'birthday', 'Birthday is not a vaild date').bail({ level: 'request' }).optional({ values: 'undefined' }),
+    _validateUserFieldChanged(body, 'favourites').bail({ level: 'request' }).optional(),
     _validateFavourites().optional(),
-    checkExact([], {message: 'Request body contains unknown fields.'})
+    checkExact([], { message: 'Request body contains unknown fields.' })
 ], async (req, res) => {
     try {
         validationResult(req).throw();
@@ -209,7 +209,7 @@ app.delete('/users/:username/favourites/:id', [
         user.favourites = user.favourites.filter((id) => {
             return String(id) !== data.id;
         });
-        if (user.favourites.length === 0) user.favourites = null;
+        if (user.favourites.length === 0) user.favourites = null; //TODO: #19 Favourites should be an empty array, not null
         await user.save();
         res.status(200).json(user.favourites);
     } catch (e) {
