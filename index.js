@@ -26,7 +26,15 @@ const express = require('express'),
 
 mongoose.connect(process.env.CONNECTION_URI);
 
-app.use(cors()); //TODO: #8 Limit CORS
+app.use(cors({
+    origin: (origin, callback) => {
+        if (process.env.CORS_WHITELIST.split(',').indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error(!origin ? 'Origin is undefined' : 'Not allowed by CORS')); //Sometimes origin is undefined
+        }
+    }
+}));
 app.use(morgan('common'));
 app.use(express.static(__dirname));
 app.use(express.urlencoded({
