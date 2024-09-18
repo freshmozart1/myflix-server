@@ -10,7 +10,8 @@
             "program": "${workspaceFolder}/index.js",
             "runtimeExecutable": "nodemon",
             "restart": true,
-            "envFile": "${workspaceFolder}/.env"
+            "envFile": "${workspaceFolder}/.env",
+            "preLaunchTask": "ensure nodemon"
         }
     ]
 }
