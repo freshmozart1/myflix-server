@@ -1,0 +1,9 @@
+{
+    "version": "2.0.0",
+    "tasks": [{
+        "label": "ensure nodemon",
+        "type": "shell",
+        "command": "npm list -g nodemon || npm install -g nodemon",
+        "problemMatcher": []
+    }]
+}
