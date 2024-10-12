@@ -178,9 +178,13 @@ async function _getDocuments(req, res, collection) {
                 return movieList.length === 0 ? res.status(404).end('No movies found.') : res.status(200).json(movieList);
             }
         } else if (collection.modelName === 'user') {
-            const user = await collection.findOne({ username: data.username }).select('-password -email -birthday -__v').populate({ path: 'favourites', select: '-__v', populate: { path: 'genre director', select: '-__v' } });
-            if (req.path.includes('/favourites')) return user ? res.status(200).json(user.favourites) : res.status(404).end('User not found.');
-            return user ? res.status(200).json(user) : res.status(404).end('User not found.');
+            if (req.path.includes('/favourites')) {
+                const user = await collection.findOne({ username: data.username }).select('favourites');
+                return user ? res.status(200).json(user) : res.status(404).end('User not found.');
+            } else {
+                const user = await collection.findOne({ username: data.username }).select('-password -email -birthday -__v');
+                return user ? res.status(200).json(user) : res.status(404).end('User not found.');
+            }
         } else if (data.name) {
             const document = await collection.findOne({ name: data.name });
             return document ? res.status(200).json(document) : res.status(404).end(data.name + ' was not found.');
