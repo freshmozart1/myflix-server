@@ -194,7 +194,7 @@ app.post('/users/:username/favourites/:id', [
             user.favourites.push(data.id);
             await user.save();
         }
-        res.status(200).json(user.favourites);
+        res.status(200).json(await movies.find({ _id: { $in: user.favourites } }).select('-__v').populate({ path: 'director genre', select: '-__v' }));
     } catch (e) {
         if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
         res.status(500).end('Database error: ' + e);
