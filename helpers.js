@@ -179,7 +179,7 @@ async function _getDocuments(req, res, collection) {
             }
         } else if (collection.modelName === 'user') {
             if (req.path.includes('/favourites')) {
-                const user = await collection.findOne({ username: data.username }).select('favourites').populate('favourites');
+                const user = await collection.findOne({ username: data.username }).select('favourites').populate({ path: 'favourites', select: '-__v', populate: { path: 'genre director', select: '-__v' } });
                 return user ? res.status(200).json(user) : res.status(404).end('User not found.');
             } else {
                 const user = await collection.findOne({ username: data.username }).select('-password -email -birthday -__v');
