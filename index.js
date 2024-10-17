@@ -219,7 +219,11 @@ app.delete('/users/:username/favourites/:id', [
         });
         if (user.favourites.length === 0) user.favourites = null; //TODO: #19 Favourites should be an empty array, not null
         await user.save();
-        res.status(200).json(user.favourites);
+        let _favourites = [];
+        if (user.favourites) {
+            _favourites = await movies.find({ _id: { $in: user.favourites } }).select('-__v').populate({ path: 'director genre', select: '-__v' });
+        }
+        res.status(200).json(user.favourites ? _favourites : null);
     } catch (e) {
         if (Array.isArray(e.errors) && e.errors[0].msg) return res.status(422).end(e.errors[0].msg);
         res.status(500).end('Database error: ' + e);
