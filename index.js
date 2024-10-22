@@ -35,7 +35,7 @@ app.use(cors({
         }
     }
 }));
-app.use(morgan('common'));
+app.use(morgan('combined'));
 app.use(express.static(__dirname));
 app.use(express.urlencoded({
     extended: true
