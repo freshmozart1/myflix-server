@@ -6,6 +6,6 @@ See what you can do [here](https://oles-myflix-810b16f7a5af.herokuapp.com/).
 
 # Techstack
 
-Amazon Web Services: For storing movie posters
-Express: For routing and validation
-Mongoose: For storing information about movies in A MongoDB database
+- Amazon Web Services: For storing movie posters
+- Express: For routing and validation
+- Mongoose: For storing information about movies in A MongoDB database
