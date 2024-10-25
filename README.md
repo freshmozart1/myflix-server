@@ -1,6 +1,6 @@
 # myFlix REST API
 
-This repository contains the REST API that connects my myFlix client application to my myFlix movie database. The database is a place where users of my myFlix client can upload information about movies.
+This repository contains the REST API that connects my [myFlix client application](https://oles-myflix.netlify.app) to my myFlix movie database. The database is a place where users of my myFlix client can upload information about movies.
 
 # Techstack
 
